@@ -5,6 +5,7 @@ import { DriverModule } from '@ride-spark/driver';
 import { CorrelationIdMiddleware } from '@ride-spark/infra-nest-server';
 import { ProblemModule } from '@ride-spark/nest/problem';
 import { RiderModule } from '@ride-spark/rider';
+import { UserModule } from '@ride-spark/user';
 import { EnvConfiguration } from '../config/env.config';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
@@ -26,10 +27,11 @@ import { AppService } from './app.service';
       password: process.env.DB_PASSWORD,
       database: process.env.DB_NAME,
       autoLoadEntities: true,
-      synchronize: false,
+      synchronize: true,
     }),
 
     ProblemModule,
+    UserModule,
     DriverModule,
     RiderModule
   ],

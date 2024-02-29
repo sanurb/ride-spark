@@ -15,12 +15,15 @@
     "skipDefaultLibCheck": true,
     "baseUrl": ".",
     "paths": {
+      "@backend/api/common": ["libs/api/common/src/index.ts"],
+      "@backend/api/common/*": ["libs/api/common/src/lib/*"],
       "@ride-spark/driver": ["libs/api/driver/src/index.ts"],
       "@ride-spark/infra-metrics": ["libs/infra-metrics/src/index.ts"],
       "@ride-spark/infra-nest-server": ["libs/infra-nest-server/src/index.ts"],
       "@ride-spark/nest/problem": ["libs/nest/problem/src/index.ts"],
       "@ride-spark/nest/swagger": ["libs/nest/swagger/src/index.ts"],
       "@ride-spark/rider": ["libs/api/rider/src/index.ts"],
+      "@ride-spark/user": ["libs/api/user/src/index.ts"],
       "@shared/problem": ["libs/shared/problem/src/index.ts"]
     }
   },

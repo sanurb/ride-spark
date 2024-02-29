@@ -13,6 +13,7 @@
     "@nestjs/platform-express": "^10.0.2",
     "@nestjs/swagger": "^7.3.0",
     "@nestjs/typeorm": "^10.0.2",
+    "@types/geojson": "^7946.0.14",
     "@types/js-yaml": "^4.0.9",
     "axios": "^1.6.0",
     "body-parser": "^1.20.2",
@@ -25,7 +26,9 @@
     "prom-client": "^15.1.0",
     "reflect-metadata": "^0.1.13",
     "rxjs": "^7.8.0",
-    "tslib": "^2.3.0"
+    "tslib": "^2.3.0",
+    "typeorm": "^0.3.20",
+    "typeorm-spatial": "^0.2.8"
   },
   "devDependencies": {
     "@nestjs/schematics": "^10.0.1",
