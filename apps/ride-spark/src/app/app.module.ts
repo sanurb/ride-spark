@@ -7,6 +7,8 @@ import { UserModule } from '@ride-spark/user';
 import { EnvConfiguration } from '../config/env.config';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
+import { RideModule } from '@ride-spark/ride';
+import { PaymentModule } from '@ride-spark/payment';
 
 @Module({
   imports: [
@@ -24,11 +26,13 @@ import { AppService } from './app.service';
       password: process.env.DB_PASSWORD,
       database: process.env.DB_NAME,
       autoLoadEntities: true,
-      synchronize: true,
+      synchronize: false,
     }),
 
     ProblemModule,
-    UserModule
+    UserModule,
+    RideModule,
+    PaymentModule
   ],
   controllers: [AppController],
   providers: [AppService],

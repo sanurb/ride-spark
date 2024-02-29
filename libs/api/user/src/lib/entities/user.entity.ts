@@ -1,6 +1,7 @@
 
 import { BaseEntity } from '@backend/api/common/entities';
-import { Column, Entity, Point, PrimaryGeneratedColumn } from 'typeorm';
+import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
+import { Point } from 'geojson';
 
 @Entity('users')
 export class User extends BaseEntity {
