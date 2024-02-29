@@ -1,0 +1,24 @@
+{
+  "name": "ride-spark",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "apps/ride-spark/src",
+  "projectType": "application",
+  "targets": {
+    "serve": {
+      "executor": "@nx/js:node",
+      "defaultConfiguration": "development",
+      "options": {
+        "buildTarget": "ride-spark:build"
+      },
+      "configurations": {
+        "development": {
+          "buildTarget": "ride-spark:build:development"
+        },
+        "production": {
+          "buildTarget": "ride-spark:build:production"
+        }
+      }
+    }
+  },
+  "tags": []
+}
