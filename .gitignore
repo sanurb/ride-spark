@@ -38,4 +38,14 @@ testem.log
 .DS_Store
 Thumbs.db
 
-.nx/cache
+
+# Ignore all local env files
+.env.*
+.env
+
+# Ignore docker database files
+apps/ride-spark/data/*
+.vscode/*
+
+# Ignore nx cache
+.nx/*

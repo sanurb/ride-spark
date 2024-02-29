@@ -16,7 +16,10 @@
     "baseUrl": ".",
     "paths": {
       "@ride-spark/infra-metrics": ["libs/infra-metrics/src/index.ts"],
-      "@ride-spark/infra-nest-server": ["libs/infra-nest-server/src/index.ts"]
+      "@ride-spark/infra-nest-server": ["libs/infra-nest-server/src/index.ts"],
+      "@shared/problem":  ["libs/shared/problem/src/index.ts"],
+      "@ride-spark/nest/problem": ["libs/nest/problem/src/index.ts"],
+      "@ride-spark/nest/swagger": ["libs/nest/swagger/src/index.ts"],
     }
   },
   "exclude": ["node_modules", "tmp"]
