@@ -14,7 +14,10 @@
     "skipLibCheck": true,
     "skipDefaultLibCheck": true,
     "baseUrl": ".",
-    "paths": {}
+    "paths": {
+      "@ride-spark/infra-metrics": ["libs/infra-metrics/src/index.ts"],
+      "@ride-spark/infra-nest-server": ["libs/infra-nest-server/src/index.ts"]
+    }
   },
   "exclude": ["node_modules", "tmp"]
 }

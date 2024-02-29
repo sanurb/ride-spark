@@ -1,0 +1,8 @@
+{
+  "name": "infra-nest-server",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/infra-nest-server/src",
+  "projectType": "library",
+  "targets": {},
+  "tags": []
+}
