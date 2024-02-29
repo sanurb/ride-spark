@@ -2,7 +2,9 @@
   "name": "@ride-spark/source",
   "version": "0.0.0",
   "license": "MIT",
-  "scripts": {},
+  "scripts": {
+    "dev": "npx nx run ride-spark:serve:development"
+  },
   "private": true,
   "dependencies": {
     "@nestjs/common": "^10.0.2",
