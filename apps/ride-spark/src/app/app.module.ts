@@ -1,10 +1,8 @@
 import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { DriverModule } from '@ride-spark/driver';
 import { CorrelationIdMiddleware } from '@ride-spark/infra-nest-server';
 import { ProblemModule } from '@ride-spark/nest/problem';
-import { RiderModule } from '@ride-spark/rider';
 import { UserModule } from '@ride-spark/user';
 import { EnvConfiguration } from '../config/env.config';
 import { AppController } from './app.controller';
@@ -15,7 +13,6 @@ import { AppService } from './app.service';
 
     ConfigModule.forRoot({
       isGlobal: true,
-      envFilePath: `.env.${process.env.NODE_ENV || 'production'}`,
       load: [ EnvConfiguration ],
     }),
 
@@ -31,9 +28,7 @@ import { AppService } from './app.service';
     }),
 
     ProblemModule,
-    UserModule,
-    DriverModule,
-    RiderModule
+    UserModule
   ],
   controllers: [AppController],
   providers: [AppService],

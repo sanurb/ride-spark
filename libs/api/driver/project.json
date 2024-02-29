@@ -1,8 +1,0 @@
-{
-  "name": "driver",
-  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
-  "sourceRoot": "libs/api/driver/src",
-  "projectType": "library",
-  "targets": {},
-  "tags": []
-}

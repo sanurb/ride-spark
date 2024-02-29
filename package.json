@@ -3,7 +3,12 @@
   "version": "0.0.0",
   "license": "MIT",
   "scripts": {
-    "dev": "npx nx run ride-spark:serve:development"
+    "dev": "npx nx run ride-spark:serve:development",
+    "typeorm": "ts-node ./node_modules/typeorm/cli",
+    "typeorm-build-config": "tsc apps/ride-spark/src/config/data-source.ts  --outDir ./dist",
+    "typeorm:create-migration": "npm run typeorm migration:create -- -n",
+    "typeorm:run-migrations": "npm run typeorm migration:run -- -d ./dist/data-source.js",
+    "typeorm:revert-migrations": "npm run typeorm migration:revert -- -d ./dist/data-source.js"
   },
   "private": true,
   "dependencies": {
