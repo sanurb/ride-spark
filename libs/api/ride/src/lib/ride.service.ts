@@ -1,17 +1,31 @@
 import {
   BadRequestException,
+  Inject,
   Injectable,
+  InternalServerErrorException,
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
+import { PaymentService } from '@ride-spark/payment';
 import { User } from '@ride-spark/user';
-import { MoreThanOrEqual, Repository } from 'typeorm';
+import { WompiService } from '@ride-spark/wompi';
+import { Point } from 'geojson';
+import { Repository } from 'typeorm';
 import { CreateRideDto } from './dto/create-ride.dto';
 import { Ride } from './entities';
-import { Point } from 'geojson';
+import { CreatePaymentDto } from '@ride-spark/payment/dto/create-payment.dto';
+import { CreatePaymentSourceDto } from './dto';
 
 @Injectable()
 export class RideService {
+  @Inject(WompiService)
+  private readonly wompiService: WompiService;
+
+  @Inject(PaymentService)
+  private readonly paymentService: PaymentService;
+
+  private readonly token = 'tok_test_10967_e6e71777457aF8Af1541df04cc928466';
+
   constructor(
     @InjectRepository(Ride)
     private rideRepository: Repository<Ride>,
@@ -20,6 +34,16 @@ export class RideService {
   ) {}
 
   async createRide(createRideDto: CreateRideDto): Promise<Ride> {
+    const rider = await this.userRepository.findOne({
+      where: { id: createRideDto.passenger_id, type: 'rider' },
+    });
+
+    if (!rider) {
+      throw new NotFoundException('Rider not found');
+    }
+
+    await this.ensurePaymentSource(rider);
+
     const nearestDriver = await this.findNearestDriver(
       createRideDto.start_location
     );
@@ -61,6 +85,60 @@ export class RideService {
     } catch (error) {
       console.error('Error finding nearest driver:', error);
       return null;
+    }
+  }
+
+  async ensurePaymentSource(rider: User): Promise<void> {
+    if (!rider.paymentMethods?.length || rider.paymentMethods?.length === 0) {
+      const acceptanceTokenResult = await this.wompiService.merchant();
+
+      const acceptanceToken =
+        acceptanceTokenResult.data.presigned_acceptance.acceptance_token;
+
+      const paymentSourceResult = await this.wompiService.paymentSources(
+        'CARD',
+        this.token,
+        rider.email,
+        acceptanceToken
+      );
+
+        const paymentBody: CreatePaymentDto = {
+          user_id: rider.id,
+          wompi_token: paymentSourceResult?.token ?? this.token,
+          payment_source_id: paymentSourceResult?.id ?? 11306,
+          type: 'CARD',
+          default_method: true,
+        }
+
+      await this.paymentService.create(paymentBody)
+    }
+  }
+
+  async createPaymentSource(createPaymentSourceDto: CreatePaymentSourceDto) {
+    const { rider_id, acceptance_token } = createPaymentSourceDto;
+
+    const rider = await this.userRepository.findOne({ where: { id: rider_id } });
+    if (!rider) {
+      throw new NotFoundException('Rider not found');
+    }
+
+    const paymentSourceResult = await this.wompiService.paymentSources(
+      'CARD',
+      this.token,
+      rider.email,
+      acceptance_token
+    );
+
+    if (paymentSourceResult && paymentSourceResult.data && paymentSourceResult.data.id) {
+      return await this.paymentService.create({
+        user_id: rider.id,
+        wompi_token: this.token,
+        payment_source_id: paymentSourceResult?.data?.id ?? 11306,
+        type: 'CARD',
+        default_method: true,
+      });
+    } else {
+      throw new InternalServerErrorException('Failed to create payment source');
     }
   }
 
@@ -156,7 +234,7 @@ export class RideService {
 
     const roundedDistance = Math.round(distance * 100) / 100;
     console.log('Distance:', roundedDistance);
-    return roundedDistance
+    return roundedDistance;
   }
 
   private degreesToRadians(degrees: number): number {

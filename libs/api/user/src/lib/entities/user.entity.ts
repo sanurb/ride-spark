@@ -1,8 +1,7 @@
-
 import { BaseEntity } from '@backend/api/common/entities';
-import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
+import { Column, Entity, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
 import { Point } from 'geojson';
-
+import { PaymentMethod } from '@ride-spark/payment/entities/payment-method.entity';
 @Entity('users')
 export class User extends BaseEntity {
   @PrimaryGeneratedColumn()
@@ -34,4 +33,7 @@ export class User extends BaseEntity {
 
   @Column({ type: 'timestamp', nullable: true })
   last_location_update: Date;
+
+  @OneToMany(() => PaymentMethod, (paymentMethod) => paymentMethod.user_id)
+  paymentMethods: PaymentMethod[];
 }

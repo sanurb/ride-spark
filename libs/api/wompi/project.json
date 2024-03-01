@@ -1,0 +1,8 @@
+{
+  "name": "wompi",
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/api/wompi/src",
+  "projectType": "library",
+  "targets": {},
+  "tags": []
+}

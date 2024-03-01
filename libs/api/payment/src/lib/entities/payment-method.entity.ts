@@ -1,6 +1,6 @@
 import { BaseEntity } from '@backend/api/common/entities';
 import { User } from '@ride-spark/user';
-import { Entity, Column, PrimaryGeneratedColumn, ManyToOne } from 'typeorm';
+import { Entity, Column, PrimaryGeneratedColumn, ManyToOne, JoinColumn } from 'typeorm';
 
 @Entity('payment_methods')
 export class PaymentMethod extends BaseEntity {
@@ -8,10 +8,14 @@ export class PaymentMethod extends BaseEntity {
   id!: number;
 
   @ManyToOne(() => User, user => user.id)
+  @JoinColumn({ name: 'user_id' })
   user_id: number;
 
   @Column({ type: 'varchar', length: 255 })
   wompi_token: string;
+
+  @Column({ type: 'integer', default: 0 })
+  payment_source_id: number;
 
   @Column({ type: 'varchar', length: 255, default: 'CARD'})
   type: string;

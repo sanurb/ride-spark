@@ -3,9 +3,9 @@ import { RideService } from './ride.service';
 import { CreateRideDto } from './dto/create-ride.dto';
 import { ApiTags } from '@nestjs/swagger';
 import { Documentation } from '@ride-spark/nest/swagger';
-import { FinishRideDto } from './dto';
+import { CreatePaymentSourceDto, FinishRideDto } from './dto';
 
-@ApiTags('ride')
+@ApiTags('Ride')
 @Controller('ride')
 export class RideController {
   constructor(private rideService: RideService) {}
@@ -19,6 +19,15 @@ export class RideController {
     return this.rideService.createRide(createRideDto);
   }
 
+  @Post('/payment-source')
+  @Documentation({
+    description: 'Create a payment source for a rider.',
+    summary: 'Create Payment Source',
+  })
+  createPaymentSource(@Body() createPaymentSourceDto: CreatePaymentSourceDto) {
+    return this.rideService.createPaymentSource(createPaymentSourceDto);
+  }
+
   @Patch('/:rideId/finish')
   @Documentation({
     description: 'Finish a ride.',
@@ -30,4 +39,6 @@ export class RideController {
   ) {
     return this.rideService.finishRide(rideId, finishRideDto.finalLocation);
   }
+
+  // Todo: Crear new endpoint to create payment source
 }
