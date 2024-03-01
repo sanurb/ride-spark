@@ -19,7 +19,7 @@ decorator from `@nestjs/common`
 ## Usage
 
 ```typescript
-import { Documentation } from '@coltefinanciera-wallet/nest/swagger';
+import { Documentation } from '@ride-spark/nest/swagger';
 
 @Documentation({
   description: 'This endpoint fetches a single animal',

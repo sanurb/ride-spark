@@ -1,4 +1,4 @@
-import { HttpProblemResponse } from '@coltefinanciera-wallet/nest/problem'
+import { HttpProblemResponse } from '@ride-spark/nest/problem'
 import { applyDecorators, HttpCode } from '@nestjs/common'
 import {
   ApiBadRequestResponse,

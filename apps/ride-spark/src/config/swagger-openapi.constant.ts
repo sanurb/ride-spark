@@ -3,9 +3,9 @@ import { OpenAPIObject } from "@nestjs/swagger";
 export const openApi: Omit<OpenAPIObject, 'paths'> = {
   openapi: process.env.OPENAPI_VERSION || '3.0.0',
   info: {
-    title: process.env.API_TITLE || 'API Coltefinanciera Wallet',
+    title: process.env.API_TITLE || 'API ride-spark',
     version: process.env.API_VERSION || '1.0',
-    description: process.env.API_DESCRIPTION || 'API Coltefinanciera Wallet',
+    description: process.env.API_DESCRIPTION || 'API ride-spark',
   },
   servers: [
     {

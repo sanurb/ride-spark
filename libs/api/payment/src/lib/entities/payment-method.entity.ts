@@ -13,6 +13,9 @@ export class PaymentMethod extends BaseEntity {
   @Column({ type: 'varchar', length: 255 })
   wompi_token: string;
 
+  @Column({ type: 'varchar', length: 255, default: 'CARD'})
+  type: string;
+
   @Column({ type: 'boolean', default: false })
   default_method: boolean;
 }
