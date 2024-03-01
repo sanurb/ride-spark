@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { PaymentModule } from '@ride-spark/payment';
+import { PaymentModule, Transaction } from '@ride-spark/payment';
 import { User } from '@ride-spark/user';
 import { WompiModule } from '@ride-spark/wompi';
 import { AvailableRide, Ride } from './entities';
@@ -13,7 +13,7 @@ import { RideService } from './ride.service';
   imports: [
     WompiModule,
     PaymentModule,
-    TypeOrmModule.forFeature([AvailableRide, Ride, User]),
+    TypeOrmModule.forFeature([AvailableRide, Ride, User, Transaction]),
   ],
   exports: [RideService],
 })

@@ -6,7 +6,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { PaymentService } from '@ride-spark/payment';
+import { PaymentService, Transaction } from '@ride-spark/payment';
 import { User } from '@ride-spark/user';
 import { WompiService } from '@ride-spark/wompi';
 import { Point } from 'geojson';
@@ -30,7 +30,9 @@ export class RideService {
     @InjectRepository(Ride)
     private rideRepository: Repository<Ride>,
     @InjectRepository(User)
-    private userRepository: Repository<User>
+    private userRepository: Repository<User>,
+    @InjectRepository(Transaction)
+    private transactionRepository: Repository<Transaction>
   ) {}
 
   async createRide(createRideDto: CreateRideDto): Promise<Ride> {
@@ -142,48 +144,58 @@ export class RideService {
     }
   }
 
+  async getRideById(rideId: number): Promise<Ride> {
+    return await this.rideRepository.findOneByOrFail({ id: rideId });
+}
+
   async finishRide(rideId: number, finalLocation: Point): Promise<Ride> {
-    const ride = await this.rideRepository.findOne({
-      where: { id: rideId, status: 'in_progress' },
-    });
-
+    const ride = await this.getRideById(rideId);
     if (!ride) {
-      throw new NotFoundException(
-        `Ride not found or you're not assigned to this ride`
-      );
+      throw new NotFoundException(`Ride not found or it's not in progress`);
     }
 
-    // validar si el final es distinto al inicial
-    if (
-      ride.start_location.coordinates[0] === finalLocation.coordinates[0] &&
-      ride.start_location.coordinates[1] === finalLocation.coordinates[1]
-    ) {
-      throw new BadRequestException(
-        'The final location must be different from the start location'
-      );
+    console.log('Ride:', ride.passenger_id);
+
+    ride.end_location = finalLocation;
+    ride.end_time = new Date();
+    ride.status = 'finished';
+
+    const totalCharged = this.calculateTotalCharge(ride, finalLocation);
+    if (totalCharged <= 0) {
+      throw new BadRequestException('Invalid total charge calculated');
     }
 
-    const rideClone = { ...ride };
-    rideClone.end_time = new Date();
-    rideClone.status = 'finished';
+    const paymentSource = await this.paymentService.findByUserId(ride.passenger_id);
+    if (!paymentSource) {
+      throw new NotFoundException('Payment source not found for the rider');
+    }
 
-    const totalCharged = this.calculateTotalCharge(rideClone, finalLocation);
-    rideClone.total_charged = Math.max(totalCharged, 0);
+    const rider = await this.userRepository.findOne({ where: { id: ride.passenger_id } });
+    if (!rider) {
+      throw new NotFoundException('Rider not found');
+    }
 
-    const transactionResult = await this.processPaymentThroughWompi(
-      totalCharged
+    const transactionResult: any = await this.wompiService.charge(
+      totalCharged,
+      rider.email,
+      `RIDE-${rideId}`,
+      paymentSource.payment_source_id.toString()
     );
 
-    if (transactionResult.success) {
-      rideClone.status = 'finished';
-      rideClone.total_charged = totalCharged;
-      rideClone.end_location = finalLocation;
-      await this.rideRepository.save(rideClone);
+    console.log('Transaction result:', transactionResult);
 
-      return rideClone;
-    } else {
-      throw new BadRequestException('Payment processing failed');
-    }
+    const transaction = new Transaction();
+    transaction.ride_id = ride.driver_id ?? 0;
+    transaction.user_id = ride.passenger_id;
+    transaction.amount = totalCharged;
+    transaction.status = transactionResult?.data?.id ? 'successful' : 'failed';
+    transaction.wompi_transaction_id = transactionResult?.data ? transactionResult.data.id : ''; // Ajusta según la respuesta de Wompi
+
+    await this.transactionRepository.save(transaction);
+
+    await this.rideRepository.save(ride);
+
+    return ride;
   }
 
   private calculateTotalCharge(ride: Ride, endLocation: Point): number {
@@ -205,7 +217,9 @@ export class RideService {
     const totalCharge =
       BASE_FEE + distance * PRICE_PER_KM + duration * PRICE_PER_MINUTE;
 
-    return totalCharge;
+    const roundedTotalCharge = Math.round(totalCharge);
+
+    return roundedTotalCharge;
   }
 
   private calculateDistance(startLocation: Point, endLocation: Point): number {
@@ -233,18 +247,10 @@ export class RideService {
     const distance = 6371 * c;
 
     const roundedDistance = Math.round(distance * 100) / 100;
-    console.log('Distance:', roundedDistance);
     return roundedDistance;
   }
 
   private degreesToRadians(degrees: number): number {
     return (degrees * Math.PI) / 180;
-  }
-
-  private async processPaymentThroughWompi(
-    totalCharged: number
-  ): Promise<{ success: boolean }> {
-    // Simula una llamada al API de Wompi para procesar el pago
-    return { success: true }; // Retorna el resultado simulado
   }
 }

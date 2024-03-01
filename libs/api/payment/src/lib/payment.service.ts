@@ -15,5 +15,13 @@ export class PaymentService {
   async create(paymentBody: CreatePaymentDto) {
     return await this.paymentRepository.save(paymentBody);
   }
+
+  async findAll() {
+    return await this.paymentRepository.find();
+  }
+
+  async findByUserId(userId: number): Promise<PaymentMethod> {
+    return await this.paymentRepository.findOneOrFail({ where: { user_id: userId } });
+  }
 }
 

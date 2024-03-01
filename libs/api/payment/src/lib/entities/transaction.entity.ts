@@ -1,7 +1,7 @@
 import { BaseEntity } from '@backend/api/common/entities';
 import { Ride } from '@ride-spark/ride';
 import { User } from '@ride-spark/user';
-import { Column, Entity, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
+import { Column, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
 
 @Entity('transactions')
 export class Transaction extends BaseEntity {
@@ -9,9 +9,11 @@ export class Transaction extends BaseEntity {
   id!: number;
 
   @ManyToOne(() => Ride, ride => ride.id)
+  @JoinColumn({ name: 'ride_id' })
   ride_id: number;
 
   @ManyToOne(() => User, user => user.id)
+  @JoinColumn({ name: 'passenger_id' })
   user_id: number; //  Passenger
 
   @Column({ type: 'decimal', precision: 10, scale: 2 })

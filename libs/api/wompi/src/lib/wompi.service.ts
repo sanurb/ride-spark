@@ -34,52 +34,87 @@ export class WompiService {
 
   async merchant() {
     const url = `${this.baseURL}/merchants/${this.publicKey}`;
-    return this.httpService.get(url, {
+    return this.httpService
+      .get(url, {
         headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${this.publicKey}`,
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${this.publicKey}`,
         },
-    }).pipe(map(response => response.data)).toPromise();
-}
-
-  async paymentSources(tokenType: string, token: string, customerEmail: string, acceptanceToken: string) {
-      const url = `${this.baseURL}/payment_sources`;
-      const body = {
-          type: tokenType,
-          token: token,
-          customer_email: customerEmail,
-          acceptance_token: acceptanceToken
-      };
-      return this.httpService.post(url, body, {
-          headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${this.privateKey}`
-          }
-      }).pipe(
-        map(response => response.data),
-        catchError(error => {
-            console.error('Error occurred while processing payment sources:', error);
-            return of(`Failed to process payment sources due to error: ${error.message}`);
-        })
-    ).toPromise();
+      })
+      .pipe(map((response) => response.data))
+      .toPromise();
   }
 
-  async charge(amount: number, email: string, reference: string, paymentSourceId: string) {
+  async paymentSources(
+    tokenType: string,
+    token: string,
+    customerEmail: string,
+    acceptanceToken: string
+  ) {
+    const url = `${this.baseURL}/payment_sources`;
+    const body = {
+      type: tokenType,
+      token: token,
+      customer_email: customerEmail,
+      acceptance_token: acceptanceToken,
+    };
+    return this.httpService
+      .post(url, body, {
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${this.privateKey}`,
+        },
+      })
+      .pipe(
+        map((response) => response.data),
+        catchError((error) => {
+          console.error(
+            'Error occurred while processing payment sources:',
+            error
+          );
+          return of(
+            `Failed to process payment sources due to error: ${error.message}`
+          );
+        })
+      )
+      .toPromise();
+  }
+
+  async charge(
+    amount: number,
+    email: string,
+    reference: string,
+    paymentSourceId: string
+  ) {
     const url = `${this.baseURL}/transactions`;
     const body = {
-        amount_in_cents: amount * 100,
-        customer_email: email,
-        payment_method: {
-            installments: 1
-        },
-        reference: reference,
-        payment_source_id: paymentSourceId
+      currency: 'COP',
+      amount_in_cents: amount * 100,
+      customer_email: email,
+      payment_method: {
+        installments: 1,
+      },
+      reference: reference,
+      payment_source_id: paymentSourceId,
     };
-    return this.httpService.post(url, body, {
+
+    console.log('body:', body);
+    return this.httpService
+      .post(url, body, {
         headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${this.privateKey}`
-        }
-    }).pipe(map(response => response.data)).toPromise();
-}
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${this.privateKey}`,
+        },
+      })
+      .pipe(
+        map((response) => {
+          response.data
+        }),
+        catchError((error) => {
+          console.error('Error occurred while processing charge:', error);
+          return of(`Failed to process charge due to error: ${error.message}`);
+        })
+      )
+      .toPromise();
+  }
 }
