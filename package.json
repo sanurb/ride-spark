@@ -4,6 +4,7 @@
   "license": "MIT",
   "scripts": {
     "dev": "npx nx run ride-spark:serve:development",
+    "test": "npx nx run ride-spark:test",
     "typeorm": "ts-node ./node_modules/typeorm/cli",
     "typeorm-build-config": "tsc apps/ride-spark/src/config/data-source.ts  --outDir ./dist",
     "typeorm:create-migration": "npm run typeorm migration:create -- -n",
