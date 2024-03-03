@@ -9,6 +9,7 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { RideModule } from '@ride-spark/ride';
 import { PaymentModule } from '@ride-spark/payment';
+import { JoiValidationSchema } from '../config/joi.validation';
 
 @Module({
   imports: [
@@ -16,6 +17,7 @@ import { PaymentModule } from '@ride-spark/payment';
     ConfigModule.forRoot({
       isGlobal: true,
       load: [ EnvConfiguration ],
+      validationSchema: JoiValidationSchema
     }),
 
     TypeOrmModule.forRoot({
