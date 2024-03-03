@@ -262,8 +262,8 @@ export class RideService {
    * @param rideId - The ID of the ride to retrieve.
    * @returns A Promise that resolves to the retrieved Ride object.
    */
-  async getRideById(rideId: number): Promise<Ride> {
-    return await this.rideRepository.findOneByOrFail({ id: rideId });
+  async getRideById(rideId: number): Promise<Ride | null> {
+    return await this.rideRepository.findOne({ where: { id: rideId } });
   }
 
   /**
@@ -283,7 +283,9 @@ export class RideService {
     finishRideDto: FinishRideDto
   ): Promise<Ride> {
     const ride = await this.getRideById(rideId);
-    this.validateRideForFinishing(ride);
+    if (!ride || ride.status !== 'in_progress') {
+      throw new NotFoundException(`Ride not found or it's not in progress`);
+    }
 
     const finalLocationPoint: Point = {
       type: 'Point',
@@ -308,17 +310,13 @@ export class RideService {
       paymentSource
     );
 
+    console.log('Transaction result:', transactionResult);
+
     await this.recordTransaction(ride, totalCharged, transactionResult);
 
     await this.rideRepository.save(ride);
 
     return ride;
-  }
-
-  private validateRideForFinishing(ride: Ride) {
-    if (!ride || ride.status !== 'in_progress') {
-      throw new NotFoundException(`Ride not found or it's not in progress`);
-    }
   }
 
   private updateRideEndDetails(
@@ -348,10 +346,12 @@ export class RideService {
   }
 
   private async validateRiderPaymentSource(riderId: number) {
+    console.log('Rider ID:', riderId);
     const paymentSource = await this.paymentService.findByUserId(riderId);
     if (!paymentSource) {
       throw new NotFoundException('Payment source not found for the rider');
     }
+    console.log('Payment source:', paymentSource);
     return paymentSource;
   }
 

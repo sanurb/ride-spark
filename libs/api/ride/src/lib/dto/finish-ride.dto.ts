@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsArray, ArrayMinSize, IsNumber, IsLongitude, IsLatitude } from 'class-validator';
+import { ArrayMinSize, IsArray, IsLatitude, IsLongitude } from 'class-validator';
 
 export class FinishRideDto {
   @ApiProperty({

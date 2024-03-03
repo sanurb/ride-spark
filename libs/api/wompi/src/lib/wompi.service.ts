@@ -1,17 +1,30 @@
 import { HttpService } from '@nestjs/axios';
 import { Injectable } from '@nestjs/common';
 import { catchError, map, throwError } from 'rxjs';
-import { IChargeResponse, IResponseTokenizedCard } from './interfaces';
+import {
+  IChargeResponse,
+  IGetTransactionResponse,
+  IMerchantResponse,
+  IPaymentSourceResponse,
+  IResponseTokenizedCard,
+} from './interfaces';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class WompiService {
-  private readonly baseURL: string = 'https://sandbox.wompi.co/v1';
-  private readonly publicKey: string =
-    'pub_test_tvNuP6A1rL8UTNVkf6nmeYc3piLPOt9D';
-  private readonly privateKey: string =
-    'prv_test_YybCjTm4ZQ4N8xquoOz4yoL3wAFZRBnw';
+  private readonly baseURL: string = '';
+  private readonly publicKey: string = '';
+  private readonly privateKey: string = '';
 
-  constructor(private readonly httpService: HttpService) {}
+  constructor(
+    private readonly httpService: HttpService,
+    private readonly configService: ConfigService
+  ) {
+    this.baseURL = this.configService.getOrThrow<string>('WOMPI_BASE_URL');
+    this.publicKey = this.configService.getOrThrow<string>('WOMPI_PUBLIC_KEY');
+    this.privateKey =
+      this.configService.getOrThrow<string>('WOMPI_PRIVATE_KEY');
+  }
 
   async addCard(): Promise<IResponseTokenizedCard> {
     const url = `${this.baseURL}/tokens/cards`;
@@ -36,7 +49,7 @@ export class WompiService {
       .toPromise();
   }
 
-  async merchant() {
+  async merchant(): Promise<IMerchantResponse> {
     const url = `${this.baseURL}/merchants/${this.publicKey}`;
     return this.httpService
       .get(url, {
@@ -57,7 +70,7 @@ export class WompiService {
     token: string,
     customerEmail: string,
     acceptanceToken: string
-  ) {
+  ): Promise<IPaymentSourceResponse> {
     const url = `${this.baseURL}/payment_sources`;
     const body = {
       type: tokenType,
@@ -111,19 +124,36 @@ export class WompiService {
       .toPromise();
   }
 
+  async getTransaction(transactionId: string): Promise<IGetTransactionResponse> {
+    const url = `${this.baseURL}/transactions/${transactionId}`;
+    return this.httpService
+      .get(url, {
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${this.privateKey}`,
+        },
+      })
+      .pipe(
+        map((response) => response.data),
+        catchError(this.handleHttpError)
+      )
+      .toPromise();
+  }
+
   private handleHttpError(error: any) {
     if (error.response && error.response.status === 422) {
       const wompiErrors = error.response.data.error.messages;
       const formattedErrors = Object.keys(wompiErrors)
-        .map(key => `${key}: ${wompiErrors[key].join(', ')}`)
+        .map((key) => `${key}: ${wompiErrors[key].join(', ')}`)
         .join('; ');
 
       console.error('Wompi API Validation Error:', formattedErrors);
-      return throwError(() => new Error(`Wompi API Validation Error: ${formattedErrors}`));
+      return throwError(
+        () => new Error(`Wompi API Validation Error: ${formattedErrors}`)
+      );
     } else {
       console.error('HTTP Error:', error.message);
       return throwError(() => new Error(`HTTP Error: ${error.message}`));
     }
   }
-
 }

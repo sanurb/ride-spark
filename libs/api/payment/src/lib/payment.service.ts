@@ -6,10 +6,9 @@ import { Repository } from 'typeorm';
 
 @Injectable()
 export class PaymentService {
-
   constructor(
     @InjectRepository(PaymentMethod)
-    private paymentRepository: Repository<PaymentMethod>,
+    private paymentRepository: Repository<PaymentMethod>
   ) {}
 
   async create(paymentBody: CreatePaymentDto) {
@@ -20,14 +19,17 @@ export class PaymentService {
     return await this.paymentRepository.find();
   }
 
-  async findByUserId(userId: number): Promise<PaymentMethod> {
-    return await this.paymentRepository.findOneOrFail({ where: { user_id: userId } });
+  async findByUserId(userId: number): Promise<PaymentMethod | null> {
+    return await this.paymentRepository.findOne({
+      where: { user: { id: userId } }
+    });
   }
 
-  async findDefaultMethodByUserId(userId: number) {
+  async findDefaultMethodByUserId(
+    userId: number
+  ): Promise<PaymentMethod | null> {
     return this.paymentRepository.findOne({
-        where: { user_id: userId, default_method: true },
+      where: { user: { id: userId }, default_method: true },
     });
+  }
 }
-}
-
