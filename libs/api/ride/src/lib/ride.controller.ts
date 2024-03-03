@@ -1,4 +1,4 @@
-import { Body, Controller, Param, ParseIntPipe, Patch, Post } from '@nestjs/common';
+import { Body, Controller, Get, Param, ParseIntPipe, Patch, Post } from '@nestjs/common';
 import { RideService } from './ride.service';
 import { CreateRideDto } from './dto/create-ride.dto';
 import { ApiTags } from '@nestjs/swagger';
@@ -26,6 +26,15 @@ export class RideController {
   })
   createPaymentSource(@Body() createPaymentSourceDto: CreatePaymentSourceDto) {
     return this.rideService.createPaymentSource(createPaymentSourceDto);
+  }
+
+  @Get('/:rideId')
+  @Documentation({
+    description: 'Get a ride by id.',
+    summary: 'Get a ride by id',
+  })
+  getRideById(@Param('rideId', ParseIntPipe) rideId: number) {
+    return this.rideService.getRideById(rideId);
   }
 
   @Patch('/:rideId/finish')

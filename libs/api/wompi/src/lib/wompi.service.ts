@@ -1,18 +1,19 @@
 import { HttpService } from '@nestjs/axios';
 import { Injectable } from '@nestjs/common';
-import { catchError, map, of } from 'rxjs';
+import { catchError, map, throwError } from 'rxjs';
+import { IChargeResponse, IResponseTokenizedCard } from './interfaces';
 
 @Injectable()
 export class WompiService {
   private readonly baseURL: string = 'https://sandbox.wompi.co/v1';
   private readonly publicKey: string =
-    'pub_test_u0eNRocWNEOhYJ9VqtxRKBFca75IalYc';
+    'pub_test_tvNuP6A1rL8UTNVkf6nmeYc3piLPOt9D';
   private readonly privateKey: string =
-    'prv_test_FfSdfrhVJ1yXKa8763QIIezvRQTeLvYK';
+    'prv_test_YybCjTm4ZQ4N8xquoOz4yoL3wAFZRBnw';
 
   constructor(private readonly httpService: HttpService) {}
 
-  async addCard() {
+  async addCard(): Promise<IResponseTokenizedCard> {
     const url = `${this.baseURL}/tokens/cards`;
     const body = {
       number: '4242424242424242',
@@ -28,7 +29,10 @@ export class WompiService {
           Authorization: `Bearer ${this.publicKey}`,
         },
       })
-      .pipe(map((response) => response.data))
+      .pipe(
+        map((response) => response.data),
+        catchError(this.handleHttpError)
+      )
       .toPromise();
   }
 
@@ -41,7 +45,10 @@ export class WompiService {
           Authorization: `Bearer ${this.publicKey}`,
         },
       })
-      .pipe(map((response) => response.data))
+      .pipe(
+        map((response) => response.data),
+        catchError(this.handleHttpError)
+      )
       .toPromise();
   }
 
@@ -67,15 +74,7 @@ export class WompiService {
       })
       .pipe(
         map((response) => response.data),
-        catchError((error) => {
-          console.error(
-            'Error occurred while processing payment sources:',
-            error
-          );
-          return of(
-            `Failed to process payment sources due to error: ${error.message}`
-          );
-        })
+        catchError(this.handleHttpError)
       )
       .toPromise();
   }
@@ -85,7 +84,7 @@ export class WompiService {
     email: string,
     reference: string,
     paymentSourceId: string
-  ) {
+  ): Promise<IChargeResponse> {
     const url = `${this.baseURL}/transactions`;
     const body = {
       currency: 'COP',
@@ -98,7 +97,6 @@ export class WompiService {
       payment_source_id: paymentSourceId,
     };
 
-    console.log('body:', body);
     return this.httpService
       .post(url, body, {
         headers: {
@@ -107,14 +105,25 @@ export class WompiService {
         },
       })
       .pipe(
-        map((response) => {
-          response.data
-        }),
-        catchError((error) => {
-          console.error('Error occurred while processing charge:', error);
-          return of(`Failed to process charge due to error: ${error.message}`);
-        })
+        map((response) => response.data),
+        catchError(this.handleHttpError)
       )
       .toPromise();
   }
+
+  private handleHttpError(error: any) {
+    if (error.response && error.response.status === 422) {
+      const wompiErrors = error.response.data.error.messages;
+      const formattedErrors = Object.keys(wompiErrors)
+        .map(key => `${key}: ${wompiErrors[key].join(', ')}`)
+        .join('; ');
+
+      console.error('Wompi API Validation Error:', formattedErrors);
+      return throwError(() => new Error(`Wompi API Validation Error: ${formattedErrors}`));
+    } else {
+      console.error('HTTP Error:', error.message);
+      return throwError(() => new Error(`HTTP Error: ${error.message}`));
+    }
+  }
+
 }
