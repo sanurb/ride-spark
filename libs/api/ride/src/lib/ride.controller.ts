@@ -46,8 +46,6 @@ export class RideController {
     @Param('rideId', ParseIntPipe) rideId: number,
     @Body() finishRideDto: FinishRideDto
   ) {
-    return this.rideService.finishRide(rideId, finishRideDto.finalLocation);
+    return this.rideService.finishRide(rideId, finishRideDto);
   }
-
-  // Todo: Crear new endpoint to create payment source
 }

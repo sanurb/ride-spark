@@ -14,7 +14,7 @@ import { Repository } from 'typeorm';
 import { CreateRideDto } from './dto/create-ride.dto';
 import { Ride } from './entities';
 import { CreatePaymentDto } from '@ride-spark/payment/dto/create-payment.dto';
-import { CreatePaymentSourceDto } from './dto';
+import { CreatePaymentSourceDto, FinishRideDto } from './dto';
 
 /**
  * Service responsible for handling ride-related operations.
@@ -63,7 +63,6 @@ export class RideService {
     );
 
     const rider = await this.validateRider(createRideDto.passenger_id);
-
     await this.checkInProgressRide(rider);
 
     const nearestDriver = await this.findNearestDriver(
@@ -76,7 +75,16 @@ export class RideService {
     return this.saveNewRide(createRideDto, rider, nearestDriver);
   }
 
-  private validateLocations(startLocation: Point, endLocation: Point): void {
+  private validateLocations(
+    startCoordinates: [number, number],
+    endCoordinates: [number, number]
+  ): void {
+    const startLocation: Point = {
+      type: 'Point',
+      coordinates: startCoordinates,
+    };
+    const endLocation: Point = { type: 'Point', coordinates: endCoordinates };
+
     if (
       startLocation.coordinates[0] === endLocation.coordinates[0] &&
       startLocation.coordinates[1] === endLocation.coordinates[1]
@@ -111,13 +119,26 @@ export class RideService {
     rider: User,
     driver: User
   ): Promise<Ride> {
+    const startLocationPoint: Point = {
+      type: 'Point',
+      coordinates: createRideDto.start_location,
+    };
+
+    const endLocationPoint: Point = {
+      type: 'Point',
+      coordinates: createRideDto.end_location,
+    };
+
     const newRide = this.rideRepository.create({
       ...createRideDto,
       passenger: rider,
       driver: driver,
       status: 'in_progress',
       start_time: new Date(),
+      start_location: startLocationPoint,
+      end_location: endLocationPoint,
     });
+
     return await this.rideRepository.save(newRide);
   }
 
@@ -127,15 +148,17 @@ export class RideService {
    * @param startLocation - The start location coordinates.
    * @returns A Promise that resolves to the nearest driver User object, or null if no driver is found.
    */
-  private async findNearestDriver(startLocation: Point): Promise<User | null> {
-    const startLocationPoint = `SRID=4326;POINT(${startLocation.coordinates[0]} ${startLocation.coordinates[1]})`;
+  private async findNearestDriver(
+    startCoordinates: [number, number]
+  ): Promise<User | null> {
+    const startLocationPoint = `SRID=4326;POINT(${startCoordinates[0]} ${startCoordinates[1]})`;
 
     const query = `
-      SELECT *, ST_Distance(location::geography, ST_GeomFromText('${startLocationPoint}', 4326)::geography) AS distance
-      FROM "users"
-      WHERE type = 'driver' AND location IS NOT NULL
-      ORDER BY location <-> ST_SetSRID(ST_MakePoint(${startLocation.coordinates[0]}, ${startLocation.coordinates[1]}), 4326)
-      LIMIT 1;
+        SELECT *, ST_Distance(location::geography, ST_GeomFromText('${startLocationPoint}', 4326)::geography) AS distance
+        FROM "users"
+        WHERE type = 'driver' AND location IS NOT NULL
+        ORDER BY location <-> ST_SetSRID(ST_MakePoint(${startCoordinates[0]}, ${startCoordinates[1]}), 4326)
+        LIMIT 1;
     `;
 
     try {
@@ -252,32 +275,37 @@ export class RideService {
    * @throws NotFoundException if the payment source is not found for the rider.
    * @throws NotFoundException if the rider is not found.
    */
-  async finishRide(rideId: number, finalLocation: Point): Promise<Ride> {
+  async finishRide(rideId: number, finishRideDto: FinishRideDto): Promise<Ride> {
     const ride = await this.getRideById(rideId);
     this.validateRideForFinishing(ride);
 
-    const totalCharged = this.calculateTotalCharge(ride, finalLocation);
+    const finalLocationPoint: Point = {
+        type: 'Point',
+        coordinates: finishRideDto.finalLocation
+    };
+
+    ride.end_time = new Date();
+    const totalCharged = this.calculateTotalCharge(ride, finalLocationPoint);
     this.validateTotalCharge(totalCharged);
 
-    this.updateRideEndDetails(ride, finalLocation, totalCharged);
+    this.updateRideEndDetails(ride, finalLocationPoint, totalCharged);
 
     const rider = await this.getRider(ride.passenger.id);
-    const paymentSource = await this.validateRiderPaymentSource(
-      ride.passenger.id
-    );
+    const paymentSource = await this.validateRiderPaymentSource(ride.passenger.id);
 
     const transactionResult = await this.processPayment(
-      totalCharged,
-      rider,
-      rideId,
-      paymentSource
+        totalCharged,
+        rider,
+        rideId,
+        paymentSource
     );
+
     await this.recordTransaction(ride, totalCharged, transactionResult);
 
     await this.rideRepository.save(ride);
 
     return ride;
-  }
+}
 
   private validateRideForFinishing(ride: Ride) {
     if (!ride || ride.status !== 'in_progress') {
@@ -285,9 +313,12 @@ export class RideService {
     }
   }
 
-  private updateRideEndDetails(ride: Ride, finalLocation: Point , totalCharged: number) {
+  private updateRideEndDetails(
+    ride: Ride,
+    finalLocation: Point,
+    totalCharged: number
+  ) {
     ride.end_location = finalLocation;
-    ride.end_time = new Date();
     ride.status = 'finished';
     ride.total_charged = totalCharged;
   }
@@ -308,9 +339,7 @@ export class RideService {
     return rider;
   }
 
-  private async validateRiderPaymentSource(
-    riderId: number
-  ) {
+  private async validateRiderPaymentSource(riderId: number) {
     const paymentSource = await this.paymentService.findByUserId(riderId);
     if (!paymentSource) {
       throw new NotFoundException('Payment source not found for the rider');
