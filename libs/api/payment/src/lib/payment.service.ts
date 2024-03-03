@@ -23,5 +23,11 @@ export class PaymentService {
   async findByUserId(userId: number): Promise<PaymentMethod> {
     return await this.paymentRepository.findOneOrFail({ where: { user_id: userId } });
   }
+
+  async findDefaultMethodByUserId(userId: number) {
+    return this.paymentRepository.findOne({
+        where: { user_id: userId, default_method: true },
+    });
+}
 }
 

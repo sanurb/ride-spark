@@ -27,19 +27,6 @@ export class RideService {
   @Inject(PaymentService)
   private readonly paymentService: PaymentService;
 
-  // This is hardcoded to avoid requesting card data at API.
-  /**
-   * Token of the tokenized Nequi Card or Account,
-   * used for testing purposes.
-   */
-  private readonly token = 'tok_test_10967_43d72501f701496157b71984f1f00e2A';
-
-  /**
-   * ID of the payment source, used for testing purposes.
-   * generated previously as well as the token
-   */
-  private readonly paymentSourceId = 101414;
-
   constructor(
     @InjectRepository(Ride)
     private rideRepository: Repository<Ride>,
@@ -200,9 +187,8 @@ export class RideService {
 
       const paymentBody: CreatePaymentDto = {
         user_id: rider.id,
-        wompi_token: paymentSourceResult?.data?.token ?? this.token,
-        payment_source_id:
-          paymentSourceResult?.data?.id ?? this.paymentSourceId,
+        wompi_token: paymentSourceResult?.data?.token,
+        payment_source_id: paymentSourceResult?.data?.id,
         type: 'CARD',
         default_method: true,
       };
@@ -229,9 +215,26 @@ export class RideService {
       throw new NotFoundException('Rider not found');
     }
 
+    const defaultPaymentMethod =
+      await this.paymentService.findDefaultMethodByUserId(rider_id);
+
+    const backupPaymentMethod = defaultPaymentMethod
+      ? null
+      : await this.paymentService.findDefaultMethodByUserId(1);
+
+    const wompiToken =
+      defaultPaymentMethod?.wompi_token ?? backupPaymentMethod?.wompi_token;
+    const paymentSourceId =
+      defaultPaymentMethod?.payment_source_id ??
+      backupPaymentMethod?.payment_source_id;
+
+    if (!wompiToken || !paymentSourceId) {
+      throw new InternalServerErrorException('No valid payment source found');
+    }
+
     const paymentSourceResult = await this.wompiService.paymentSources(
       'CARD',
-      this.token,
+      wompiToken,
       rider.email,
       acceptance_token
     );
@@ -243,8 +246,8 @@ export class RideService {
     ) {
       return await this.paymentService.create({
         user_id: rider.id,
-        wompi_token: this.token,
-        payment_source_id: paymentSourceResult?.data?.id ?? 11306,
+        wompi_token: wompiToken,
+        payment_source_id: paymentSourceResult.data.id,
         type: 'CARD',
         default_method: true,
       });
@@ -275,13 +278,16 @@ export class RideService {
    * @throws NotFoundException if the payment source is not found for the rider.
    * @throws NotFoundException if the rider is not found.
    */
-  async finishRide(rideId: number, finishRideDto: FinishRideDto): Promise<Ride> {
+  async finishRide(
+    rideId: number,
+    finishRideDto: FinishRideDto
+  ): Promise<Ride> {
     const ride = await this.getRideById(rideId);
     this.validateRideForFinishing(ride);
 
     const finalLocationPoint: Point = {
-        type: 'Point',
-        coordinates: finishRideDto.finalLocation
+      type: 'Point',
+      coordinates: finishRideDto.finalLocation,
     };
 
     ride.end_time = new Date();
@@ -291,13 +297,15 @@ export class RideService {
     this.updateRideEndDetails(ride, finalLocationPoint, totalCharged);
 
     const rider = await this.getRider(ride.passenger.id);
-    const paymentSource = await this.validateRiderPaymentSource(ride.passenger.id);
+    const paymentSource = await this.validateRiderPaymentSource(
+      ride.passenger.id
+    );
 
     const transactionResult = await this.processPayment(
-        totalCharged,
-        rider,
-        rideId,
-        paymentSource
+      totalCharged,
+      rider,
+      rideId,
+      paymentSource
     );
 
     await this.recordTransaction(ride, totalCharged, transactionResult);
@@ -305,7 +313,7 @@ export class RideService {
     await this.rideRepository.save(ride);
 
     return ride;
-}
+  }
 
   private validateRideForFinishing(ride: Ride) {
     if (!ride || ride.status !== 'in_progress') {
