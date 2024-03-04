@@ -3,7 +3,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { PaymentModule, Transaction } from '@ride-spark/payment';
 import { User } from '@ride-spark/user';
 import { WompiModule } from '@ride-spark/wompi';
-import { Ride } from './entities';
+import { Ride } from './entities/ride.entity';
 import { RideController } from './ride.controller';
 import { RideService } from './ride.service';
 

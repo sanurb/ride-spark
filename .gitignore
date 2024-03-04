@@ -48,3 +48,4 @@ apps/ride-spark/data/*
 
 # Ignore nx cache
 .nx/*
+.env.production

@@ -63,6 +63,15 @@ npm run dev
 
 This command starts the NestJS application in development mode with hot-reload enabled.
 
+
+Alternatively it can be run with docker
+
+```bash
+docker build -f Dockerfile -t ridespark .
+docker run -d -p 4444:4444 --name ridespark-instance --env-file ./.env ridespark
+docker logs ridespark-instance
+```
+
 ## Additional Commands
 
 - **Create a new TypeORM migration:**

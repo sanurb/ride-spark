@@ -16,7 +16,6 @@ export const JoiValidationSchema = Joi.object({
       .required(),
 
   DB_HOST: Joi.string()
-      .hostname()
       .default('localhost')
       .required(),
 

@@ -28,7 +28,11 @@ import { JoiValidationSchema } from '../config/joi.validation';
       password: process.env.DB_PASSWORD,
       database: process.env.DB_NAME,
       autoLoadEntities: true,
-      synchronize: true,
+      synchronize: false,
+      ssl: {
+        rejectUnauthorized: false,
+        ca: process.env.DB_SSL_CA,
+      }
     }),
 
     ProblemModule,
