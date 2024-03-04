@@ -29,10 +29,10 @@ import { EventEmitterModule } from '@nestjs/event-emitter';
       password: process.env.DB_PASSWORD,
       database: process.env.DB_NAME,
       autoLoadEntities: true,
-      synchronize: false,
-      ssl: {
-        rejectUnauthorized: false,
-      }
+      synchronize: true,
+      // ssl: {
+      //   rejectUnauthorized: false,
+      // }
     }),
 
     ProblemModule,

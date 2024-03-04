@@ -55,6 +55,10 @@ export class RideService {
     const rider = await this.validateRider(createRideDto.passenger_id);
     await this.checkInProgressRide(rider.id);
 
+    if (rider.paymentMethods?.length === 0) {
+      await this.ensurePaymentSource(rider);
+    }
+
     const nearestDriver = await this.findNearestDriver(
       createRideDto.start_location
     );
@@ -101,6 +105,7 @@ export class RideService {
   private async validateRider(passengerId: number): Promise<User> {
     const rider = await this.userRepository.findOne({
       where: { id: passengerId, type: 'rider' },
+      relations: ['paymentMethods'],
     });
     if (!rider) {
       throw new NotFoundException('Rider not found');
@@ -119,7 +124,6 @@ export class RideService {
     const inProgressRide = await this.rideRepository.findOne({
       where: { passenger: { id: passengerId }, status: 'in_progress' },
     });
-    console.log('inProgressRide', inProgressRide);
     if (inProgressRide) {
       throw new BadRequestException('The rider already has a ride in progress');
     }
@@ -200,34 +204,7 @@ export class RideService {
    * @returns A Promise that resolves to void.
    */
   async ensurePaymentSource(rider: User): Promise<void> {
-    if (!rider.paymentMethods?.length || rider.paymentMethods?.length === 0) {
-      const acceptanceTokenResult = await this.wompiService.merchant();
-
-      const acceptanceToken =
-        acceptanceTokenResult.data.presigned_acceptance.acceptance_token;
-
-      // Add a new card for the rider if they don't have any payment methods
-      // this is done to avoid validation error "The token is already in use".
-      const newTokenizedCard = await this.wompiService.addCard();
-
-      // Create a payment source for the rider
-      const paymentSourceResult = await this.wompiService.paymentSources(
-        'CARD',
-        newTokenizedCard?.data?.id,
-        rider.email,
-        acceptanceToken
-      );
-
-      const paymentBody: CreatePaymentDto = {
-        user_id: rider.id,
-        wompi_token: paymentSourceResult?.data?.token,
-        payment_source_id: paymentSourceResult?.data?.id,
-        type: 'CARD',
-        default_method: true,
-      };
-
-      await this.paymentService.create(paymentBody);
-    }
+    this.eventEmitter.emit('ensurePaymentSource', rider);
   }
 
   /**
@@ -241,53 +218,16 @@ export class RideService {
   async createPaymentSource(createPaymentSourceDto: CreatePaymentSourceDto) {
     const { rider_id, acceptance_token } = createPaymentSourceDto;
 
-    const rider = await this.userRepository.findOne({
-      where: { id: rider_id },
+    const rider = await this.userRepository.findOne({ where: { id: rider_id } });
+    if (!rider) throw new NotFoundException('Rider not found');
+
+    return new Promise((resolve, reject) => {
+        this.eventEmitter.emit('createPaymentSource', rider, acceptance_token, (error: any, result: any) => {
+            if (error) reject(new BadRequestException(error.message));
+            else resolve(result);
+        });
     });
-    if (!rider) {
-      throw new NotFoundException('Rider not found');
-    }
-
-    const defaultPaymentMethod =
-      await this.paymentService.findDefaultMethodByUserId(rider_id);
-
-    const backupPaymentMethod = defaultPaymentMethod
-      ? null
-      : await this.paymentService.findDefaultMethodByUserId(1);
-
-    const wompiToken =
-      defaultPaymentMethod?.wompi_token ?? backupPaymentMethod?.wompi_token;
-    const paymentSourceId =
-      defaultPaymentMethod?.payment_source_id ??
-      backupPaymentMethod?.payment_source_id;
-
-    if (!wompiToken || !paymentSourceId) {
-      throw new InternalServerErrorException('No valid payment source found');
-    }
-
-    const paymentSourceResult = await this.wompiService.paymentSources(
-      'CARD',
-      wompiToken,
-      rider.email,
-      acceptance_token
-    );
-
-    if (
-      paymentSourceResult &&
-      paymentSourceResult.data &&
-      paymentSourceResult.data.id
-    ) {
-      return await this.paymentService.create({
-        user_id: rider.id,
-        wompi_token: wompiToken,
-        payment_source_id: paymentSourceResult.data.id,
-        type: 'CARD',
-        default_method: true,
-      });
-    } else {
-      throw new InternalServerErrorException('Failed to create payment source');
-    }
-  }
+}
 
   /**
    * Finds a ride by its ID.
