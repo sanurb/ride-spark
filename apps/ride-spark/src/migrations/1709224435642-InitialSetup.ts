@@ -20,6 +20,7 @@ export class InitialSetup1709224435642 implements MigrationInterface {
             INSERT INTO users (name, email, password, type, location) VALUES
             ('Rider One', 'riderone@example.com', '<hashed_password>', 'rider', ST_SetSRID(ST_Point(-76.5368824, 3.4438444), 4326)),
             ('Rider Two', 'ridertwo@example.com', '<hashed_password>', 'rider', ST_SetSRID(ST_Point(-76.5328732, 3.4519238), 4326)),
+            ('Rider Three', 'riderthree@example.com, '<hashed_password>', 'rider', ST_SetSRID(ST_Point(-76.52035117567739, 3.344184466878147), 4326)),
             ('Driver One', 'driverone@example.com', '<hashed_password>', 'driver', ST_SetSRID(ST_Point(-76.5375118896857, 3.3659008724971926), 4326)),
             ('Driver Two', 'drivertwo@example.com', '<hashed_password>', 'driver', ST_SetSRID(ST_Point(-76.5218673, 3.3537033), 4326))
         `);
