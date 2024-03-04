@@ -106,6 +106,12 @@ This command runs all the Jest tests in the project but no in libs.
 
 After starting the application, you can access the Swagger API documentation at `http://localhost:4444/swagger`
 
+[Swagger Prod](https://api-ride-spark.onrender.com/swagger)
+
+## Database Documentation
+
+[Database documentation](https://dbdocs.io/sanurb/ride_spark)
+
 ## Contributing
 
 We welcome contributions to the Ride-Spark Source project! Please refer to the `CONTRIBUTING.md` file for more information on how to submit pull requests, report issues, and suggest improvements.
