@@ -45,8 +45,8 @@ export class InitialSetup1709224435642 implements MigrationInterface {
 
     await queryRunner.query(`
         INSERT INTO payment_methods (created_at, updated_at, deleted_at, id, wompi_token, type, default_method, user_id, payment_source_id) VALUES
-        ('2024-03-03 15:21:28.508325', '2024-03-03 15:21:28.508325', NULL, 1, 'tok_test_10967_43d72501f701496157b71984f1f00e2A', 'CARD', true, 1, 101414),
-        ('2024-03-03 15:56:37.185168', '2024-03-03 15:56:37.185168', NULL, 2, 'tok_test_88255_d00cd3e9a11452AB8dba97c3DB9525a2', 'CARD', true, 2, 101415);
+        ('2024-03-03 15:21:28.508325', '2024-03-03 15:21:28.508325', NULL, 1, '72726e8a1b0cefaec0efe32d3fc29a19f9dfb5d0c8889db7c50a5d2eec406cf2dec922d2f38d98036de57219c194fe13', 'CARD', true, 1, 101536),
+        ('2024-03-03 15:56:37.185168', '2024-03-03 15:56:37.185168', NULL, 2, '1658ceefda39d6217c168b8bdfeaaaa6932ec51d4ba65553eafcbb9770767b72f9d1326a499fea2dfd7006d68d441cd3', 'CARD', true, 2, 101537);
     `);
   }
 
