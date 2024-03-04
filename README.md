@@ -100,13 +100,67 @@ Remember that for local development purposes these lines of code should be comme
 
 ## Testing
 
-To run the tests for the project, execute:
+Para mejorar la redacción y claridad de las instrucciones de testing, podrías reformular la sección de la siguiente manera:
+
+---
+
+## Testing Instructions
+
+To ensure the functionality of the project components, follow these steps to run the automated tests:
+
+### Prerequisites:
+
+Ensure that you have Node.js installed on your system. You can download it from [Node.js official website](https://nodejs.org/).
+
+### Installing Test Utilities:
+
+We will use Newman, a command-line Collection Runner for Postman, and its `newman-reporter-htmlextra` plugin for better reporting. Install them globally using npm with the following commands:
 
 ```bash
-npx nx run ride-spark:test
+npm install -g newman
+npm install -g newman-reporter-htmlextra
 ```
 
-This command runs all the Jest tests in the project but no in libs.
+### Running the Tests:
+
+Navigate to the directory containing your Postman collection and environment files. You can do this from the terminal or command prompt:
+
+```bash
+cd ./postman
+```
+
+Once you are in the correct directory, initiate the test run using Newman with the following command:
+
+```bash
+newman run Ride-Spark.postman_collection.json -r htmlextra -e local.postman_environment.json
+```
+
+This command tells Newman to run the tests defined in `Ride-Spark.postman_collection.json`, using `local.postman_environment.json` for the environment settings, and generate a report using the `htmlextra` reporter.
+
+### Viewing the Report:
+
+After the tests have completed, a new HTML report will be generated in the `newman` directory. To view this report, navigate to the `newman` directory:
+
+```bash
+cd ./newman
+```
+
+Then, if you are using Windows, you can open the report directly with the following command:
+
+```bash
+start "" "Api Ride-Spark-2024-03-04-12-33-40-990-0.html"
+```
+
+For macOS or Linux, use the corresponding command to open HTML files with your default browser, for example:
+
+```bash
+open "Api Ride-Spark-2024-03-04-12-33-40-990-0.html" # for macOS
+xdg-open "Api Ride-Spark-2024-03-04-12-33-40-990-0.html" # for Linux
+```
+
+The HTML report provides a detailed overview of the test results, including which tests passed or failed, and other relevant data.
+
+```
 
 ## API Documentation
 

@@ -1,0 +1,188 @@
+{
+	"info": {
+		"_postman_id": "7f5a6b01-fe43-4700-ade5-05f839ab53fb",
+		"name": "Api Ride-Spark",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "30069115"
+	},
+	"item": [
+		{
+			"name": "health",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{host}}/v1",
+					"host": [
+						"{{host}}"
+					],
+					"path": [
+						"v1"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Create a ride",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 201\", function () {\r",
+							"    pm.response.to.have.status(201);\r",
+							"})\r",
+							"\r",
+							"var jsonData = pm.response.json();\r",
+							"\r",
+							"pm.test(\"Ride is in progress\", function () {\r",
+							"    pm.expect(jsonData.status).to.eql(\"in_progress\");\r",
+							"    pm.expect(jsonData.passenger).to.have.property(\"type\", \"rider\");\r",
+							"    pm.expect(jsonData.driver).to.have.property(\"type\", \"driver\");\r",
+							"    pm.expect(jsonData.start_location.type).to.eql(\"Point\");\r",
+							"    pm.expect(jsonData.end_location.type).to.eql(\"Point\");\r",
+							"});\r",
+							"\r",
+							"pm.test(\"Ride structure is correct\", function () {\r",
+							"    pm.expect(jsonData).to.have.property(\"start_location\");\r",
+							"    pm.expect(jsonData).to.have.property(\"end_location\");\r",
+							"    pm.expect(jsonData).to.have.property(\"passenger\");\r",
+							"    pm.expect(jsonData).to.have.property(\"driver\");\r",
+							"    pm.expect(jsonData).to.have.property(\"start_time\");\r",
+							"    pm.expect(jsonData).to.have.property(\"status\");\r",
+							"    pm.expect(jsonData.passenger).to.have.property(\"id\");\r",
+							"    pm.expect(jsonData.driver).to.have.property(\"id\");\r",
+							"    pm.environment.set(\"rideId\", jsonData.id);\r",
+							"});\r",
+							""
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n  \"passenger_id\": 1,\r\n  \"start_location\": [\r\n    -76.5368824,\r\n    3.4438444\r\n  ],\r\n  \"end_location\": [\r\n    -76.5360452,\r\n    3.4216413\r\n  ]\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{host}}/v1/ride/rides",
+					"host": [
+						"{{host}}"
+					],
+					"path": [
+						"v1",
+						"ride",
+						"rides"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Finish a ride",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {\r",
+							"    pm.response.to.have.status(200);\r",
+							"})\r",
+							"\r",
+							"var jsonData = pm.response.json();\r",
+							"\r",
+							"pm.test(\"Ride is finished\", function () {\r",
+							"    pm.expect(jsonData.status).to.eql(\"finished\");\r",
+							"});\r",
+							"\r",
+							"// Test para verificar la estructura del ride y sus datos\r",
+							"pm.test(\"Ride structure and data are correct\", function () {\r",
+							"    pm.expect(jsonData).to.have.property(\"start_location\");\r",
+							"    pm.expect(jsonData).to.have.property(\"end_location\");\r",
+							"    pm.expect(jsonData).to.have.property(\"start_time\");\r",
+							"    pm.expect(jsonData).to.have.property(\"end_time\");\r",
+							"    pm.expect(jsonData).to.have.property(\"total_charged\");\r",
+							"    pm.expect(jsonData).to.have.property(\"passenger\");\r",
+							"    pm.expect(jsonData.passenger).to.have.property(\"id\");\r",
+							"    pm.expect(jsonData.passenger).to.have.property(\"name\");\r",
+							"    pm.expect(jsonData.passenger).to.have.property(\"email\");\r",
+							"    pm.expect(jsonData.passenger).to.have.property(\"type\", \"rider\");\r",
+							"\r",
+							"    // Verifica que las coordenadas son del tipo esperado\r",
+							"    pm.expect(jsonData.start_location.coordinates).to.be.an('array');\r",
+							"    pm.expect(jsonData.end_location.coordinates).to.be.an('array');\r",
+							"\r",
+							"    // Verifica que el total cargado es un número\r",
+							"    pm.expect(jsonData.total_charged).to.be.a('number');\r",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "PATCH",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n  \"finalLocation\": [\r\n    -76.5360452,\r\n    3.4216413\r\n  ]\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{host}}/v1/ride/{{rideId}}/finish",
+					"host": [
+						"{{host}}"
+					],
+					"path": [
+						"v1",
+						"ride",
+						"{{rideId}}",
+						"finish"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Create a payment source",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n  \"rider_id\": 1,\r\n  \"acceptance_token\": \"qwertyuiop123456789qwerty\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{host}}/v1/ride/payment-source",
+					"host": [
+						"{{host}}"
+					],
+					"path": [
+						"v1",
+						"ride",
+						"payment-source"
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}
