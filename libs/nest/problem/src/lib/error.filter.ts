@@ -6,7 +6,7 @@ import { Problem, ProblemType } from '@shared/problem'
 export class ErrorFilter extends BaseProblemFilter {
   getProblem(error: Error): Problem {
     const extraDetails =
-      process.env.NODE_ENV !== 'production'
+      process.env['NODE_ENV'] !== 'production'
         ? { detail: error.message, stack: error.stack }
         : null
 

@@ -1,0 +1,77 @@
+Project ride_spark {
+  database_type: 'PostgreSQL'
+  Note: '''
+      # Ride-Spark Database
+      This database schema is designed for the Ride-Spark application, which connects riders with drivers for efficient and safe transportation services.
+      It covers users' information, rides' logistics, payment methods, and transaction records.
+  '''
+
+  enum user_type {
+      rider [note: 'Users who are passengers']
+      driver [note: 'Users who are drivers']
+  }
+
+  enum ride_status {
+      waiting [note: 'Ride is waiting for a driver']
+      in_progress [note: 'Ride is currently in progress']
+      finished [note: 'Ride has been completed']
+  }
+
+  enum transaction_status {
+      successful [note: 'Transaction completed successfully']
+      failed [note: 'Transaction failed']
+  }
+
+  enum payment_type {
+      CARD [note: 'Payment made using a card']
+  }
+
+  Table users {
+      id int [pk, increment, note: 'Auto-incremented primary key']
+      name varchar(255) [note: 'User full name']
+      email varchar(255) [unique, note: 'User email address, must be unique']
+      password varchar(255) [note: 'Hashed password for user authentication']
+      type user_type [default: 'rider', note: 'Type of user: rider or driver']
+      location geometry(Point, 4326) [null, note: 'Geographic location of the user, nullable']
+      last_location_update timestamp [null, note: 'Timestamp of the last location update, nullable']
+
+      Note: 'Stores user information including their role and location data.'
+  }
+
+  Table rides {
+      id int [pk, increment, note: 'Unique identifier for each ride']
+      passenger_id int [ref: > users.id, note: 'References a user as a passenger']
+      driver_id int [null, ref: > users.id, note: 'References a user as a driver, nullable']
+      start_location geometry(Point, 4326) [note: 'Starting location of the ride']
+      end_location geometry(Point, 4326) [null, note: 'Ending location of the ride, nullable']
+      start_time timestamp [null, note: 'Start time of the ride, nullable']
+      end_time timestamp [null, note: 'End time of the ride, nullable']
+      status ride_status [default: 'waiting', note: 'Current status of the ride']
+      total_charged decimal(10, 2) [default: 0, null, note: 'Total amount charged for the ride, nullable']
+
+      Note: 'Represents a ride from start to finish along with its status and financial details.'
+  }
+
+  Table transactions {
+      id int [pk, increment, note: 'Unique identifier for each transaction']
+      ride_id int [ref: > rides.id, note: 'Associated ride for the transaction']
+      user_id int [ref: > users.id, note: 'User associated with the transaction']
+      amount decimal(10, 2) [note: 'Amount of the transaction']
+      status transaction_status [default: 'successful', note: 'Status of the transaction']
+      wompi_transaction_id varchar(255) [note: 'External transaction identifier from the payment gateway']
+
+      Note: 'Records financial transactions associated with rides.'
+  }
+
+  Table payment_methods {
+      id int [pk, increment, note: 'Unique identifier for each payment method']
+      user_id int [ref: > users.id, note: 'User to whom the payment method belongs']
+      wompi_token varchar(255) [note: 'Token provided by the payment gateway for the payment method']
+      payment_source_id int [default: 0, note: 'Identifier for the payment source in the payment gateway']
+      type payment_type [default: 'CARD', note: 'Type of payment method, defaults to CARD']
+      default_method boolean [default: false, note: 'Indicates whether this is the user\'s default payment method']
+
+      Note: 'Stores payment methods available for users for transactions.'
+  }
+
+}

@@ -40,7 +40,7 @@ Thumbs.db
 
 
 # Ignore all local env files
-# .env
+.env
 .env.production
 
 # Ignore docker database files

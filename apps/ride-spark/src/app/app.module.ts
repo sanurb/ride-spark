@@ -10,10 +10,11 @@ import { AppService } from './app.service';
 import { RideModule } from '@ride-spark/ride';
 import { PaymentModule } from '@ride-spark/payment';
 import { JoiValidationSchema } from '../config/joi.validation';
+import { EventEmitterModule } from '@nestjs/event-emitter';
 
 @Module({
   imports: [
-
+    EventEmitterModule.forRoot(),
     ConfigModule.forRoot({
       isGlobal: true,
       load: [ EnvConfiguration ],
@@ -28,10 +29,10 @@ import { JoiValidationSchema } from '../config/joi.validation';
       password: process.env.DB_PASSWORD,
       database: process.env.DB_NAME,
       autoLoadEntities: true,
-      synchronize: false,
-      ssl: {
-        rejectUnauthorized: false,
-      }
+      synchronize: true,
+      // ssl: {
+      //   rejectUnauthorized: false,
+      // }
     }),
 
     ProblemModule,

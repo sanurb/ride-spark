@@ -71,6 +71,12 @@ docker build -f Dockerfile -t ridespark .
 docker run -d -p 4444:4444 --name ridespark-instance --env-file ./.env ridespark
 docker logs ridespark-instance
 ```
+Remember that for local development purposes these lines of code should be commented out:
+```js
+// ssl: {
+// rejectUnauthorized: false,
+// }
+```
 
 ## Additional Commands
 
@@ -105,6 +111,12 @@ This command runs all the Jest tests in the project but no in libs.
 ## API Documentation
 
 After starting the application, you can access the Swagger API documentation at `http://localhost:4444/swagger`
+
+[Swagger Prod](https://api-ride-spark.onrender.com/swagger)
+
+## Database Documentation
+
+[Database documentation](https://dbdocs.io/sanurb/ride_spark)
 
 ## Contributing
 

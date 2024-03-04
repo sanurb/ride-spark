@@ -26,7 +26,8 @@
       "@ride-spark/ride": ["libs/api/ride/src/index.ts"],
       "@ride-spark/user": ["libs/api/user/src/index.ts"],
       "@ride-spark/wompi": ["libs/api/wompi/src/index.ts"],
-      "@shared/problem": ["libs/shared/problem/src/index.ts"]
+      "@shared/problem": ["libs/shared/problem/src/index.ts"],
+      "@shared/api-interfaces": ["libs/shared/api-interfaces/src/index.ts"],
     }
   },
   "exclude": ["node_modules", "tmp"]

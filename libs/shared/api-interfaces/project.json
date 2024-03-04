@@ -1,0 +1,8 @@
+{
+  "name": "api-interfaces",
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/shared/api-interfaces/src",
+  "projectType": "library",
+  "targets": {},
+  "tags": []
+}
