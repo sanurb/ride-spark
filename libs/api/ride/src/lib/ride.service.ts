@@ -53,7 +53,7 @@ export class RideService {
     );
 
     const rider = await this.validateRider(createRideDto.passenger_id);
-    await this.checkInProgressRide(rider);
+    await this.checkInProgressRide(rider.id);
 
     const nearestDriver = await this.findNearestDriver(
       createRideDto.start_location
@@ -115,10 +115,11 @@ export class RideService {
    * @param rider - The rider to check for in-progress ride.
    * @returns A Promise that resolves to void.
    */
-  private async checkInProgressRide(rider: User): Promise<void> {
+  private async checkInProgressRide(passengerId: number): Promise<void> {
     const inProgressRide = await this.rideRepository.findOne({
-      where: { passenger: rider, status: 'in_progress' },
+      where: { passenger: { id: passengerId }, status: 'in_progress' },
     });
+    console.log('inProgressRide', inProgressRide);
     if (inProgressRide) {
       throw new BadRequestException('The rider already has a ride in progress');
     }

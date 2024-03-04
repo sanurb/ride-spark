@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, ParseIntPipe, Patch, Post } from '@nestjs/common';
+import { Body, Controller, Get, HttpStatus, Param, ParseIntPipe, Patch, Post } from '@nestjs/common';
 import { RideService } from './ride.service';
 import { CreateRideDto } from './dto/create-ride.dto';
 import { ApiTags } from '@nestjs/swagger';
@@ -14,6 +14,7 @@ export class RideController {
   @Documentation({
     description: 'Create a new ride.',
     summary: 'Create a ride',
+    response: { status: HttpStatus.CREATED },
   })
   createRide(@Body() createRideDto: CreateRideDto) {
     return this.rideService.createRide(createRideDto);
