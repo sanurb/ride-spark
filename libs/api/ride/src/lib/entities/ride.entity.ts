@@ -8,13 +8,13 @@ export class Ride extends BaseEntity {
   @PrimaryGeneratedColumn()
   id!: number;
 
-  @ManyToOne(() => User, user => user.id)
+  @ManyToOne(() => User, { eager: true})
   @JoinColumn({ name: 'passenger_id' })
-  passenger_id: number;
+  passenger: User;
 
-  @ManyToOne(() => User, user => user.id, { nullable: true })
+  @ManyToOne(() => User, { nullable: true })
   @JoinColumn({ name: 'driver_id' })
-  driver_id: number | null;
+  driver: User | null;
 
   @Column({
     type: 'geometry',

@@ -34,6 +34,6 @@ export class User extends BaseEntity {
   @Column({ type: 'timestamp', nullable: true })
   last_location_update: Date;
 
-  @OneToMany(() => PaymentMethod, (paymentMethod) => paymentMethod.user_id)
+  @OneToMany(() => PaymentMethod, (paymentMethod) => paymentMethod.user)
   paymentMethods: PaymentMethod[];
 }

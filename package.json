@@ -27,6 +27,7 @@
     "class-validator": "^0.14.1",
     "cookie-parser": "^1.4.6",
     "geojson": "^0.5.0",
+    "joi": "^17.12.2",
     "js-yaml": "^4.1.0",
     "nestjs-pino": "^4.0.0",
     "pg": "^8.11.3",

@@ -1,8 +1,5 @@
-import { IsNumber, IsOptional, IsEnum, ValidateNested } from 'class-validator';
-import { Type } from 'class-transformer';
-import { Point } from 'geojson';
 import { ApiProperty } from '@nestjs/swagger';
-import { PointType } from '@backend/api/common';
+import { ArrayMinSize, IsArray, IsLatitude, IsLongitude, IsNumber } from 'class-validator';
 
 export class CreateRideDto {
     @ApiProperty({
@@ -14,32 +11,24 @@ export class CreateRideDto {
     passenger_id!: number;
 
     @ApiProperty({
-      description: 'The location where the ride will start.',
-      example: {
-        type: 'Point',
-        coordinates: [-76.5368824, 3.4438444] // Example: Longitude, Latitude
-      },
-      required: true,
-      type: PointType,
+      description: 'The starting location coordinates (longitude, latitude).',
+      example: [-76.5368824, 3.4438444],
+      type: [Number],
     })
-    @ValidateNested()
-    @Type(() => PointType)
-    start_location!: Point;
+    @IsArray()
+    @ArrayMinSize(2)
+    @IsLongitude({ each: true })
+    @IsLatitude({ each: true })
+    start_location!: [number, number];
 
     @ApiProperty({
-      description: 'The location where the ride will end.',
-      example: {
-        type: 'Point',
-        coordinates: [-76.5360452, 3.4216413] // Example: Longitude, Latitude
-      },
-      required: true,
-      type: PointType,
+      description: 'The ending location coordinates (longitude, latitude).',
+      example: [-76.5360452, 3.4216413],
+      type: [Number],
     })
-    @ValidateNested()
-    @Type(() => PointType)
-    end_location!: Point;
-
-    @IsEnum({ waiting: 'waiting', in_progress: 'in_progress', finished: 'finished' })
-    @IsOptional()
-    status?: string = 'waiting';
+    @IsArray()
+    @ArrayMinSize(2)
+    @IsLongitude({ each: true })
+    @IsLatitude({ each: true })
+    end_location!: [number, number];
 }
