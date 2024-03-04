@@ -40,7 +40,8 @@ Thumbs.db
 
 
 # Ignore all local env files
-.env
+# .env
+.env.production
 
 # Ignore docker database files
 apps/ride-spark/data/*
@@ -48,4 +49,3 @@ apps/ride-spark/data/*
 
 # Ignore nx cache
 .nx/*
-.env.production
