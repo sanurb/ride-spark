@@ -17,7 +17,7 @@ import { JoiValidationSchema } from '../config/joi.validation';
     ConfigModule.forRoot({
       isGlobal: true,
       load: [ EnvConfiguration ],
-      validationSchema: JoiValidationSchema
+      // validationSchema: JoiValidationSchema
     }),
 
     TypeOrmModule.forRoot({
@@ -31,7 +31,6 @@ import { JoiValidationSchema } from '../config/joi.validation';
       synchronize: false,
       ssl: {
         rejectUnauthorized: false,
-        ca: process.env.DB_SSL_CA,
       }
     }),
 
