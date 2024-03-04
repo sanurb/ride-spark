@@ -1,10 +1,11 @@
+import { IBaseEntity } from '@shared/api-interfaces';
 import { CreateDateColumn, DeleteDateColumn, UpdateDateColumn } from 'typeorm';
 
 /**
  * Defines a base entity with common fields and behaviors for all entities.
  * @abstract
  */
-export abstract class BaseEntity {
+export abstract class BaseEntity implements IBaseEntity{
   /** @member {Date} createdAt - the create date */
   @CreateDateColumn({
     name: 'created_at',

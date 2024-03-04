@@ -17,6 +17,7 @@
     "@nestjs/common": "^10.0.2",
     "@nestjs/config": "^3.2.0",
     "@nestjs/core": "^10.0.2",
+    "@nestjs/event-emitter": "^2.0.4",
     "@nestjs/platform-express": "^10.0.2",
     "@nestjs/swagger": "^7.3.0",
     "@nestjs/typeorm": "^10.0.2",
@@ -36,7 +37,8 @@
     "rxjs": "^7.8.0",
     "tslib": "^2.3.0",
     "typeorm": "^0.3.20",
-    "typeorm-spatial": "^0.2.8"
+    "typeorm-spatial": "^0.2.8",
+    "uuidv4": "^6.2.13"
   },
   "devDependencies": {
     "@nestjs/schematics": "^10.0.1",

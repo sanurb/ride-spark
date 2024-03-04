@@ -34,7 +34,7 @@ export class RideController {
     summary: 'Get a ride by id',
   })
   getRideById(@Param('rideId', ParseIntPipe) rideId: number) {
-    return this.rideService.getRideById(rideId);
+    return this.rideService.findById(rideId);
   }
 
   @Patch('/:rideId/finish')

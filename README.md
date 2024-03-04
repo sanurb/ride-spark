@@ -71,6 +71,12 @@ docker build -f Dockerfile -t ridespark .
 docker run -d -p 4444:4444 --name ridespark-instance --env-file ./.env ridespark
 docker logs ridespark-instance
 ```
+Remember that for local development purposes these lines of code should be commented out:
+```js
+// ssl: {
+// rejectUnauthorized: false,
+// }
+```
 
 ## Additional Commands
 

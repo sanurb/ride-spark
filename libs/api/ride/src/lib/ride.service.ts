@@ -5,17 +5,19 @@ import {
   InternalServerErrorException,
   NotFoundException,
 } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { InjectRepository } from '@nestjs/typeorm';
-import { PaymentService, Transaction } from '@ride-spark/payment';
+import { PaymentService } from '@ride-spark/payment';
+import { CreatePaymentDto } from '@ride-spark/payment/dto/create-payment.dto';
 import { User } from '@ride-spark/user';
 import { WompiService } from '@ride-spark/wompi';
 import { Point } from 'geojson';
 import { Repository } from 'typeorm';
+import { CreatePaymentSourceDto, FinishRideDto } from './dto';
 import { CreateRideDto } from './dto/create-ride.dto';
 import { Ride } from './entities';
-import { CreatePaymentDto } from '@ride-spark/payment/dto/create-payment.dto';
-import { CreatePaymentSourceDto, FinishRideDto } from './dto';
-
+import { calculateDistance } from './utils';
+import { v4 as uuidv4 } from 'uuid';
 /**
  * Service responsible for handling ride-related operations.
  */
@@ -28,12 +30,13 @@ export class RideService {
   private readonly paymentService: PaymentService;
 
   constructor(
+    private readonly eventEmitter: EventEmitter2,
+
     @InjectRepository(Ride)
     private rideRepository: Repository<Ride>,
+
     @InjectRepository(User)
     private userRepository: Repository<User>,
-    @InjectRepository(Transaction)
-    private transactionRepository: Repository<Transaction>
   ) {}
 
   /**
@@ -62,6 +65,13 @@ export class RideService {
     return this.saveNewRide(createRideDto, rider, nearestDriver);
   }
 
+  /**
+   * Validates the start and end locations for a ride.
+   * Throws a BadRequestException if the start and end locations are the same.
+   *
+   * @param startCoordinates - The coordinates of the start location.
+   * @param endCoordinates - The coordinates of the end location.
+   */
   private validateLocations(
     startCoordinates: [number, number],
     endCoordinates: [number, number]
@@ -82,6 +92,12 @@ export class RideService {
     }
   }
 
+  /**
+   * Validates a rider by checking if the rider exists in the database.
+   * @param passengerId - The ID of the rider to validate.
+   * @returns A Promise that resolves to the validated rider.
+   * @throws NotFoundException if the rider is not found.
+   */
   private async validateRider(passengerId: number): Promise<User> {
     const rider = await this.userRepository.findOne({
       where: { id: passengerId, type: 'rider' },
@@ -92,6 +108,13 @@ export class RideService {
     return rider;
   }
 
+  /**
+   * Checks if the given rider has an in-progress ride.
+   * Throws a BadRequestException if the rider already has a ride in progress.
+   *
+   * @param rider - The rider to check for in-progress ride.
+   * @returns A Promise that resolves to void.
+   */
   private async checkInProgressRide(rider: User): Promise<void> {
     const inProgressRide = await this.rideRepository.findOne({
       where: { passenger: rider, status: 'in_progress' },
@@ -101,6 +124,14 @@ export class RideService {
     }
   }
 
+  /**
+   * Saves a new ride in the database.
+   *
+   * @param createRideDto - The DTO containing the details of the ride to be created.
+   * @param rider - The user who requested the ride.
+   * @param driver - The user who will be driving the ride.
+   * @returns A Promise that resolves to the newly created Ride object.
+   */
   private async saveNewRide(
     createRideDto: CreateRideDto,
     rider: User,
@@ -126,6 +157,7 @@ export class RideService {
       end_location: endLocationPoint,
     });
 
+    this.eventEmitter.emit('ride.created', newRide);
     return await this.rideRepository.save(newRide);
   }
 
@@ -257,6 +289,21 @@ export class RideService {
   }
 
   /**
+   * Finds a ride by its ID.
+   *
+   * @param rideId - The ID of the ride to find.
+   * @returns A Promise that resolves to the found ride.
+   * @throws NotFoundException if the ride with the specified ID is not found.
+   */
+  async findById(rideId: number): Promise<Ride> {
+    const ride = await this.rideRepository.findOne({ where: { id: rideId } });
+    if (!ride) {
+      throw new NotFoundException('Ride not found');
+    }
+    return ride;
+  }
+
+  /**
    * Retrieves a ride by its ID.
    *
    * @param rideId - The ID of the ride to retrieve.
@@ -310,15 +357,19 @@ export class RideService {
       paymentSource
     );
 
-    console.log('Transaction result:', transactionResult);
-
-    await this.recordTransaction(ride, totalCharged, transactionResult);
-
+    this.eventEmitter.emit('ride.finished', ride, totalCharged, transactionResult);
     await this.rideRepository.save(ride);
 
     return ride;
   }
 
+  /**
+   * Updates the end details of a ride.
+   *
+   * @param ride - The ride object to update.
+   * @param finalLocation - The final location of the ride.
+   * @param totalCharged - The total amount charged for the ride.
+   */
   private updateRideEndDetails(
     ride: Ride,
     finalLocation: Point,
@@ -335,6 +386,12 @@ export class RideService {
     }
   }
 
+  /**
+   * Retrieves a rider by their ID.
+   * @param riderId - The ID of the rider to retrieve.
+   * @returns A Promise that resolves to the retrieved rider.
+   * @throws NotFoundException if the rider is not found.
+   */
   private async getRider(riderId: number): Promise<User> {
     const rider = await this.userRepository.findOne({
       where: { id: riderId, type: 'rider' },
@@ -345,44 +402,43 @@ export class RideService {
     return rider;
   }
 
+  /**
+   * Validates the payment source for a rider.
+   * @param riderId - The ID of the rider.
+   * @returns The payment source for the rider.
+   * @throws NotFoundException if the payment source is not found for the rider.
+   */
   private async validateRiderPaymentSource(riderId: number) {
-    console.log('Rider ID:', riderId);
     const paymentSource = await this.paymentService.findByUserId(riderId);
     if (!paymentSource) {
       throw new NotFoundException('Payment source not found for the rider');
     }
-    console.log('Payment source:', paymentSource);
     return paymentSource;
   }
 
+  /**
+   * Process the payment for a ride.
+   *
+   * @param totalCharged - The total amount to be charged for the ride.
+   * @param rider - The user who is taking the ride.
+   * @param rideId - The ID of the ride.
+   * @param paymentSource - The payment source information.
+   * @returns A promise that resolves to the result of the payment processing.
+   */
   private async processPayment(
     totalCharged: number,
     rider: User,
     rideId: number,
     paymentSource: any
   ) {
+    const uniqueRef = `RIDE-${rideId}-${uuidv4()}`;
+
     return await this.wompiService.charge(
       totalCharged,
       rider.email,
-      `RIDE-${rideId}`,
+      uniqueRef,
       paymentSource.payment_source_id.toString()
     );
-  }
-
-  private async recordTransaction(
-    ride: Ride,
-    totalCharged: number,
-    transactionResult: any
-  ) {
-    const transaction = new Transaction();
-    transaction.ride_id = ride.id;
-    transaction.user_id = ride.passenger.id;
-    transaction.amount = totalCharged;
-    transaction.status = transactionResult?.data?.id ? 'successful' : 'failed';
-    transaction.wompi_transaction_id = transactionResult?.data
-      ? transactionResult.data.id
-      : '';
-    await this.transactionRepository.save(transaction);
   }
 
   /**
@@ -403,7 +459,7 @@ export class RideService {
     const PRICE_PER_KM = 1000;
     const PRICE_PER_MINUTE = 200;
 
-    const distance = this.calculateDistance(ride.start_location, endLocation); // distancia en km
+    const distance = calculateDistance(ride.start_location, endLocation); // distancia en km
 
     const duration =
       (ride.end_time.getTime() - ride.start_time.getTime()) / 60000;
@@ -414,48 +470,5 @@ export class RideService {
     const roundedTotalCharge = Math.round(totalCharge);
 
     return roundedTotalCharge;
-  }
-
-  /**
-   * Calculates the distance between two points using the Haversine formula.
-   * @param startLocation - The starting point coordinates.
-   * @param endLocation - The ending point coordinates.
-   * @returns The distance between the two points in kilometers.
-   */
-  private calculateDistance(startLocation: Point, endLocation: Point): number {
-    const latitude1 = startLocation.coordinates[1];
-    const longitude1 = startLocation.coordinates[0];
-    const latitude2 = endLocation.coordinates[1];
-    const longitude2 = endLocation.coordinates[0];
-
-    const radLatitude1 = this.degreesToRadians(latitude1);
-    const radLongitude1 = this.degreesToRadians(longitude1);
-    const radLatitude2 = this.degreesToRadians(latitude2);
-    const radLongitude2 = this.degreesToRadians(longitude2);
-
-    const dLat = radLatitude2 - radLatitude1;
-    const dLon = radLongitude2 - radLongitude1;
-
-    // Haversine
-    const a =
-      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-      Math.cos(radLatitude1) *
-        Math.cos(radLatitude2) *
-        Math.sin(dLon / 2) *
-        Math.sin(dLon / 2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    const distance = 6371 * c;
-
-    const roundedDistance = Math.round(distance * 100) / 100;
-    return roundedDistance;
-  }
-
-  /**
-   * Converts degrees to radians.
-   * @param degrees - The value in degrees to be converted.
-   * @returns The value in radians.
-   */
-  private degreesToRadians(degrees: number): number {
-    return (degrees * Math.PI) / 180;
   }
 }

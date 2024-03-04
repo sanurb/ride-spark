@@ -11,7 +11,7 @@ export class ProblemError extends Error {
     Object.defineProperty(this, 'name', { value: 'ProblemError' })
 
     if (
-      process.env.NODE_ENV !== 'production' &&
+      process.env['NODE_ENV'] !== 'production' &&
       !problem.type.startsWith('http')
     ) {
       throw new Error('ProblemError type must be a URL.')
