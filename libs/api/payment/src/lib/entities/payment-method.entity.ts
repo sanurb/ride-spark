@@ -7,9 +7,9 @@ export class PaymentMethod extends BaseEntity {
   @PrimaryGeneratedColumn()
   id!: number;
 
-  @ManyToOne(() => User, user => user.id)
+  @ManyToOne(() => User, user => user.paymentMethods, { eager: true })
   @JoinColumn({ name: 'user_id' })
-  user_id: number;
+  user: User;
 
   @Column({ type: 'varchar', length: 255 })
   wompi_token: string;

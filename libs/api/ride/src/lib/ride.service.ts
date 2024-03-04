@@ -14,7 +14,7 @@ import { Repository } from 'typeorm';
 import { CreateRideDto } from './dto/create-ride.dto';
 import { Ride } from './entities';
 import { CreatePaymentDto } from '@ride-spark/payment/dto/create-payment.dto';
-import { CreatePaymentSourceDto } from './dto';
+import { CreatePaymentSourceDto, FinishRideDto } from './dto';
 
 /**
  * Service responsible for handling ride-related operations.
@@ -26,8 +26,6 @@ export class RideService {
 
   @Inject(PaymentService)
   private readonly paymentService: PaymentService;
-
-  private readonly token = 'tok_test_10967_e6e71777457aF8Af1541df04cc928466';
 
   constructor(
     @InjectRepository(Ride)
@@ -46,15 +44,13 @@ export class RideService {
    * @throws NotFoundException if the rider or available drivers are not found.
    */
   async createRide(createRideDto: CreateRideDto): Promise<Ride> {
-    const rider = await this.userRepository.findOne({
-      where: { id: createRideDto.passenger_id, type: 'rider' },
-    });
+    this.validateLocations(
+      createRideDto.start_location,
+      createRideDto.end_location
+    );
 
-    if (!rider) {
-      throw new NotFoundException('Rider not found');
-    }
-
-    await this.ensurePaymentSource(rider);
+    const rider = await this.validateRider(createRideDto.passenger_id);
+    await this.checkInProgressRide(rider);
 
     const nearestDriver = await this.findNearestDriver(
       createRideDto.start_location
@@ -63,18 +59,74 @@ export class RideService {
       throw new NotFoundException('No available drivers found');
     }
 
+    return this.saveNewRide(createRideDto, rider, nearestDriver);
+  }
+
+  private validateLocations(
+    startCoordinates: [number, number],
+    endCoordinates: [number, number]
+  ): void {
+    const startLocation: Point = {
+      type: 'Point',
+      coordinates: startCoordinates,
+    };
+    const endLocation: Point = { type: 'Point', coordinates: endCoordinates };
+
+    if (
+      startLocation.coordinates[0] === endLocation.coordinates[0] &&
+      startLocation.coordinates[1] === endLocation.coordinates[1]
+    ) {
+      throw new BadRequestException(
+        'The start and end locations cannot be the same'
+      );
+    }
+  }
+
+  private async validateRider(passengerId: number): Promise<User> {
+    const rider = await this.userRepository.findOne({
+      where: { id: passengerId, type: 'rider' },
+    });
+    if (!rider) {
+      throw new NotFoundException('Rider not found');
+    }
+    return rider;
+  }
+
+  private async checkInProgressRide(rider: User): Promise<void> {
+    const inProgressRide = await this.rideRepository.findOne({
+      where: { passenger: rider, status: 'in_progress' },
+    });
+    if (inProgressRide) {
+      throw new BadRequestException('The rider already has a ride in progress');
+    }
+  }
+
+  private async saveNewRide(
+    createRideDto: CreateRideDto,
+    rider: User,
+    driver: User
+  ): Promise<Ride> {
+    const startLocationPoint: Point = {
+      type: 'Point',
+      coordinates: createRideDto.start_location,
+    };
+
+    const endLocationPoint: Point = {
+      type: 'Point',
+      coordinates: createRideDto.end_location,
+    };
+
     const newRide = this.rideRepository.create({
       ...createRideDto,
-      driver_id: nearestDriver.id,
+      passenger: rider,
+      driver: driver,
       status: 'in_progress',
       start_time: new Date(),
+      start_location: startLocationPoint,
+      end_location: endLocationPoint,
     });
 
-    const savedRide = await this.rideRepository.save(newRide);
-
-    return {
-      ...savedRide,
-    };
+    return await this.rideRepository.save(newRide);
   }
 
   /**
@@ -83,15 +135,17 @@ export class RideService {
    * @param startLocation - The start location coordinates.
    * @returns A Promise that resolves to the nearest driver User object, or null if no driver is found.
    */
-  private async findNearestDriver(startLocation: Point): Promise<User | null> {
-    const startLocationPoint = `SRID=4326;POINT(${startLocation.coordinates[0]} ${startLocation.coordinates[1]})`;
+  private async findNearestDriver(
+    startCoordinates: [number, number]
+  ): Promise<User | null> {
+    const startLocationPoint = `SRID=4326;POINT(${startCoordinates[0]} ${startCoordinates[1]})`;
 
     const query = `
-      SELECT *, ST_Distance(location::geography, ST_GeomFromText('${startLocationPoint}', 4326)::geography) AS distance
-      FROM "users"
-      WHERE type = 'driver' AND location IS NOT NULL
-      ORDER BY location <-> ST_SetSRID(ST_MakePoint(${startLocation.coordinates[0]}, ${startLocation.coordinates[1]}), 4326)
-      LIMIT 1;
+        SELECT *, ST_Distance(location::geography, ST_GeomFromText('${startLocationPoint}', 4326)::geography) AS distance
+        FROM "users"
+        WHERE type = 'driver' AND location IS NOT NULL
+        ORDER BY location <-> ST_SetSRID(ST_MakePoint(${startCoordinates[0]}, ${startCoordinates[1]}), 4326)
+        LIMIT 1;
     `;
 
     try {
@@ -119,17 +173,22 @@ export class RideService {
       const acceptanceToken =
         acceptanceTokenResult.data.presigned_acceptance.acceptance_token;
 
+      // Add a new card for the rider if they don't have any payment methods
+      // this is done to avoid validation error "The token is already in use".
+      const newTokenizedCard = await this.wompiService.addCard();
+
+      // Create a payment source for the rider
       const paymentSourceResult = await this.wompiService.paymentSources(
         'CARD',
-        this.token,
+        newTokenizedCard?.data?.id,
         rider.email,
         acceptanceToken
       );
 
       const paymentBody: CreatePaymentDto = {
         user_id: rider.id,
-        wompi_token: paymentSourceResult?.token ?? this.token,
-        payment_source_id: paymentSourceResult?.id ?? 11306,
+        wompi_token: paymentSourceResult?.data?.token,
+        payment_source_id: paymentSourceResult?.data?.id,
         type: 'CARD',
         default_method: true,
       };
@@ -156,9 +215,26 @@ export class RideService {
       throw new NotFoundException('Rider not found');
     }
 
+    const defaultPaymentMethod =
+      await this.paymentService.findDefaultMethodByUserId(rider_id);
+
+    const backupPaymentMethod = defaultPaymentMethod
+      ? null
+      : await this.paymentService.findDefaultMethodByUserId(1);
+
+    const wompiToken =
+      defaultPaymentMethod?.wompi_token ?? backupPaymentMethod?.wompi_token;
+    const paymentSourceId =
+      defaultPaymentMethod?.payment_source_id ??
+      backupPaymentMethod?.payment_source_id;
+
+    if (!wompiToken || !paymentSourceId) {
+      throw new InternalServerErrorException('No valid payment source found');
+    }
+
     const paymentSourceResult = await this.wompiService.paymentSources(
       'CARD',
-      this.token,
+      wompiToken,
       rider.email,
       acceptance_token
     );
@@ -170,8 +246,8 @@ export class RideService {
     ) {
       return await this.paymentService.create({
         user_id: rider.id,
-        wompi_token: this.token,
-        payment_source_id: paymentSourceResult?.data?.id ?? 11306,
+        wompi_token: wompiToken,
+        payment_source_id: paymentSourceResult.data.id,
         type: 'CARD',
         default_method: true,
       });
@@ -186,8 +262,8 @@ export class RideService {
    * @param rideId - The ID of the ride to retrieve.
    * @returns A Promise that resolves to the retrieved Ride object.
    */
-  async getRideById(rideId: number): Promise<Ride> {
-    return await this.rideRepository.findOneByOrFail({ id: rideId });
+  async getRideById(rideId: number): Promise<Ride | null> {
+    return await this.rideRepository.findOne({ where: { id: rideId } });
   }
 
   /**
@@ -202,60 +278,111 @@ export class RideService {
    * @throws NotFoundException if the payment source is not found for the rider.
    * @throws NotFoundException if the rider is not found.
    */
-  async finishRide(rideId: number, finalLocation: Point): Promise<Ride> {
+  async finishRide(
+    rideId: number,
+    finishRideDto: FinishRideDto
+  ): Promise<Ride> {
     const ride = await this.getRideById(rideId);
-    if (!ride) {
+    if (!ride || ride.status !== 'in_progress') {
       throw new NotFoundException(`Ride not found or it's not in progress`);
     }
 
-    console.log('Ride:', ride.passenger_id);
+    const finalLocationPoint: Point = {
+      type: 'Point',
+      coordinates: finishRideDto.finalLocation,
+    };
 
-    ride.end_location = finalLocation;
     ride.end_time = new Date();
-    ride.status = 'finished';
+    const totalCharged = this.calculateTotalCharge(ride, finalLocationPoint);
+    this.validateTotalCharge(totalCharged);
 
-    const totalCharged = this.calculateTotalCharge(ride, finalLocation);
+    this.updateRideEndDetails(ride, finalLocationPoint, totalCharged);
+
+    const rider = await this.getRider(ride.passenger.id);
+    const paymentSource = await this.validateRiderPaymentSource(
+      ride.passenger.id
+    );
+
+    const transactionResult = await this.processPayment(
+      totalCharged,
+      rider,
+      rideId,
+      paymentSource
+    );
+
+    console.log('Transaction result:', transactionResult);
+
+    await this.recordTransaction(ride, totalCharged, transactionResult);
+
+    await this.rideRepository.save(ride);
+
+    return ride;
+  }
+
+  private updateRideEndDetails(
+    ride: Ride,
+    finalLocation: Point,
+    totalCharged: number
+  ) {
+    ride.end_location = finalLocation;
+    ride.status = 'finished';
+    ride.total_charged = totalCharged;
+  }
+
+  private validateTotalCharge(totalCharged: number) {
     if (totalCharged <= 0) {
       throw new BadRequestException('Invalid total charge calculated');
     }
+  }
 
-    const paymentSource = await this.paymentService.findByUserId(
-      ride.passenger_id
-    );
-    if (!paymentSource) {
-      throw new NotFoundException('Payment source not found for the rider');
-    }
-
+  private async getRider(riderId: number): Promise<User> {
     const rider = await this.userRepository.findOne({
-      where: { id: ride.passenger_id },
+      where: { id: riderId, type: 'rider' },
     });
     if (!rider) {
       throw new NotFoundException('Rider not found');
     }
+    return rider;
+  }
 
-    const transactionResult: any = await this.wompiService.charge(
+  private async validateRiderPaymentSource(riderId: number) {
+    console.log('Rider ID:', riderId);
+    const paymentSource = await this.paymentService.findByUserId(riderId);
+    if (!paymentSource) {
+      throw new NotFoundException('Payment source not found for the rider');
+    }
+    console.log('Payment source:', paymentSource);
+    return paymentSource;
+  }
+
+  private async processPayment(
+    totalCharged: number,
+    rider: User,
+    rideId: number,
+    paymentSource: any
+  ) {
+    return await this.wompiService.charge(
       totalCharged,
       rider.email,
       `RIDE-${rideId}`,
       paymentSource.payment_source_id.toString()
     );
+  }
 
-    console.log('Transaction result:', transactionResult);
-
+  private async recordTransaction(
+    ride: Ride,
+    totalCharged: number,
+    transactionResult: any
+  ) {
     const transaction = new Transaction();
-    transaction.ride_id = ride.driver_id ?? 0;
-    transaction.user_id = ride.passenger_id;
+    transaction.ride_id = ride.id;
+    transaction.user_id = ride.passenger.id;
     transaction.amount = totalCharged;
     transaction.status = transactionResult?.data?.id ? 'successful' : 'failed';
     transaction.wompi_transaction_id = transactionResult?.data
       ? transactionResult.data.id
-      : ''; // Ajusta según la respuesta de Wompi
-
+      : '';
     await this.transactionRepository.save(transaction);
-
-    await this.rideRepository.save(ride);
-
-    return ride;
   }
 
   /**
