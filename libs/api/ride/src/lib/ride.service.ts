@@ -16,8 +16,7 @@ import { Repository } from 'typeorm';
 import { CreatePaymentSourceDto, FinishRideDto } from './dto';
 import { CreateRideDto } from './dto/create-ride.dto';
 import { Ride } from './entities';
-import { calculateDistance } from './utils';
-import { v4 as uuidv4 } from 'uuid';
+import { calculateDistance, createIntegrityFirm, generateRandomCode } from './utils';
 /**
  * Service responsible for handling ride-related operations.
  */
@@ -372,12 +371,14 @@ export class RideService {
     rideId: number,
     paymentSource: any
   ) {
-    const uniqueRef = `RIDE-${rideId}-${uuidv4()}`;
-
+    const uniqueRef = generateRandomCode(10, 'uuid')
+    const amount_in_cents = totalCharged * 100;
+    const integrityFirm = await createIntegrityFirm(uniqueRef, amount_in_cents);
     return await this.wompiService.charge(
-      totalCharged,
+      amount_in_cents,
       rider.email,
       uniqueRef,
+      integrityFirm,
       paymentSource.payment_source_id.toString()
     );
   }

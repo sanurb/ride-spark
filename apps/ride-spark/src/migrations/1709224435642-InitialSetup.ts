@@ -6,7 +6,7 @@ export class InitialSetup1709224435642 implements MigrationInterface {
             CREATE EXTENSION IF NOT EXISTS postgis;
         `);
 
-        await queryRunner.query(`
+    await queryRunner.query(`
         DO $$ BEGIN
             CREATE TYPE "user_type_enum" AS ENUM('rider', 'driver');
         EXCEPTION
@@ -14,7 +14,7 @@ export class InitialSetup1709224435642 implements MigrationInterface {
         END $$;
     `);
 
-await queryRunner.query(`
+    await queryRunner.query(`
         CREATE TABLE IF NOT EXISTS users (
             id SERIAL PRIMARY KEY,
             name VARCHAR(255),
@@ -46,7 +46,7 @@ await queryRunner.query(`
             updated_at TIMESTAMP NOT NULL DEFAULT now(),
             deleted_at TIMESTAMP,
             id INT NOT NULL DEFAULT nextval('payment_methods_id_seq'::regclass),
-            wompi_token VARCHAR(255) NOT NULL,
+            _wompi_token TEXT NOT NULL,
             type VARCHAR(255) NOT NULL DEFAULT 'CARD',
             default_method BOOLEAN NOT NULL DEFAULT false,
             user_id INT,
@@ -57,7 +57,7 @@ await queryRunner.query(`
     `);
 
     await queryRunner.query(`
-        INSERT INTO payment_methods (created_at, updated_at, deleted_at, id, wompi_token, type, default_method, user_id, payment_source_id) VALUES
+        INSERT INTO payment_methods (created_at, updated_at, deleted_at, id, _wompi_token, type, default_method, user_id, payment_source_id) VALUES
         ('2024-03-03 15:21:28.508325', '2024-03-03 15:21:28.508325', NULL, 1, '72726e8a1b0cefaec0efe32d3fc29a19f9dfb5d0c8889db7c50a5d2eec406cf2dec922d2f38d98036de57219c194fe13', 'CARD', true, 1, 101536),
         ('2024-03-03 15:56:37.185168', '2024-03-03 15:56:37.185168', NULL, 2, '1658ceefda39d6217c168b8bdfeaaaa6932ec51d4ba65553eafcbb9770767b72f9d1326a499fea2dfd7006d68d441cd3', 'CARD', true, 2, 101537);
     `);
