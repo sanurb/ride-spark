@@ -157,6 +157,7 @@ export class WompiService {
    * @param amount - The amount to be charged, in cents.
    * @param email - The email address of the customer being charged.
    * @param reference - A unique reference for the transaction, for tracking purposes.
+   * @param integrityFirm - The integrity firm string for the transaction, used for security purposes
    * @param paymentSourceId - The ID of the payment source to be charged.
    * @returns A promise resolved with the charge transaction details on success.
    * @throws Will throw an error if the HTTP request fails, which could be due to invalid input data, unauthorized access, or network issues.
@@ -171,12 +172,14 @@ export class WompiService {
     amount: number,
     email: string,
     reference: string,
+    integrityFirm: string,
     paymentSourceId: string
   ): Promise<IChargeResponse> {
     const url = `${this.baseURL}/transactions`;
     const body = {
       currency: 'COP',
-      amount_in_cents: amount * 100,
+      signature: integrityFirm,
+      amount_in_cents: amount,
       customer_email: email,
       payment_method: {
         installments: 1,
