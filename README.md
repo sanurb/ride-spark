@@ -28,7 +28,15 @@
 
 Welcome to the Ride-Spark Source project, a backend solution designed for ride-sharing services. This project utilizes NestJS, TypeORM, and other powerful technologies to provide a robust API for managing rides, users, and transactions.
 
-## Requirements
+## ✨ Features
+
+- **Robust Wompi Integration for Payments:** Leverages advanced security protocols and efficient algorithms to ensure safe and rapid processing of payment methods and transactions. Our backend is designed to seamlessly handle the complexities of financial transactions, providing a secure and reliable payment experience tailored for ride-sharing services.
+
+- **Streamlined Ride Initiation Process:** Utilizes a sophisticated, algorithm-driven approach to streamline the ride request and initiation process. By focusing on optimizing the user experience, our backend system ensures that initiating a ride is as smooth and effortless as possible, setting a new standard for user convenience in ride-sharing platforms.
+
+- **Dynamic Fare Calculation Algorithm:** Implements a comprehensive fare calculation system that accurately considers distance, time, and base fare in its computations. This algorithm is designed to provide precise fare estimates, ensuring transparency and fairness in pricing for both riders and drivers. Our methodological approach to fare calculation takes into account the dynamic variables of each ride, offering a refined and adaptable solution for fare estimation.
+
+## ⚙️ Requirements
 
 Before you start, make sure you have the following installed on your system:
 
@@ -36,7 +44,7 @@ Before you start, make sure you have the following installed on your system:
 - Docker and Docker Compose
 - Git (for cloning the repository)
 
-## Setup and Installation
+## 💻 Setup and Installation
 
 1. **Clone the repository:**
 
@@ -77,7 +85,7 @@ Before you start, make sure you have the following installed on your system:
 
    This command runs the migrations necessary for the project using the compiled JS files.
 
-## Development
+## 🚀 Development
 
 make sure to create the .env file with the values of .env.example and that the database is running
 
@@ -124,7 +132,7 @@ Remember that for local development purposes these lines of code should be comme
   npm run typeorm:revert-migrations
   ```
 
-## Testing Instructions
+## 🧪 Testing Instructions
 
 To ensure the functionality of the project components, follow these steps to run the automated tests:
 
