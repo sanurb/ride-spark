@@ -4,23 +4,36 @@ export class InitialSetup1709224435642 implements MigrationInterface {
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(`
             CREATE EXTENSION IF NOT EXISTS postgis;
-
-            CREATE TABLE IF NOT EXISTS users (
-                id SERIAL PRIMARY KEY,
-                name VARCHAR(255),
-                email VARCHAR(255) UNIQUE,
-                password VARCHAR(255),
-                type VARCHAR(255) NOT NULL DEFAULT 'rider',
-                location GEOMETRY(Point, 4326),
-                last_location_update TIMESTAMP
-            );
         `);
+
+        await queryRunner.query(`
+        DO $$ BEGIN
+            CREATE TYPE "user_type_enum" AS ENUM('rider', 'driver');
+        EXCEPTION
+            WHEN duplicate_object THEN null;
+        END $$;
+    `);
+
+await queryRunner.query(`
+        CREATE TABLE IF NOT EXISTS users (
+            id SERIAL PRIMARY KEY,
+            name VARCHAR(255),
+            email VARCHAR(255) UNIQUE,
+            password VARCHAR(255),
+            type "user_type_enum" NOT NULL DEFAULT 'rider',
+            location GEOMETRY(Point, 4326),
+            last_location_update TIMESTAMP,
+            CONSTRAINT "CHK_001" CHECK (char_length(name) > 0),
+            CONSTRAINT "CHK_002" CHECK (char_length(email) > 0),
+            CONSTRAINT "CHK_003" CHECK (char_length(password) > 0)
+        );
+    `);
 
     await queryRunner.query(`
             INSERT INTO users (name, email, password, type, location) VALUES
             ('Rider One', 'riderone@example.com', '<hashed_password>', 'rider', ST_SetSRID(ST_Point(-76.5368824, 3.4438444), 4326)),
             ('Rider Two', 'ridertwo@example.com', '<hashed_password>', 'rider', ST_SetSRID(ST_Point(-76.5328732, 3.4519238), 4326)),
-            ('Rider Three', 'riderthree@example.com, '<hashed_password>', 'rider', ST_SetSRID(ST_Point(-76.52035117567739, 3.344184466878147), 4326)),
+            ('Rider Three', 'riderthree@example.com', '<hashed_password>', 'rider', ST_SetSRID(ST_Point(-76.52035117567739, 3.344184466878147), 4326)),
             ('Driver One', 'driverone@example.com', '<hashed_password>', 'driver', ST_SetSRID(ST_Point(-76.5375118896857, 3.3659008724971926), 4326)),
             ('Driver Two', 'drivertwo@example.com', '<hashed_password>', 'driver', ST_SetSRID(ST_Point(-76.5218673, 3.3537033), 4326))
         `);
@@ -51,6 +64,8 @@ export class InitialSetup1709224435642 implements MigrationInterface {
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
-    await queryRunner.query(`DROP TABLE users;`);
+    await queryRunner.query(`DROP TABLE IF EXISTS payment_methods;`);
+    await queryRunner.query(`DROP TABLE IF EXISTS users;`);
+    await queryRunner.query(`DROP TYPE IF EXISTS "user_type_enum";`);
   }
 }
